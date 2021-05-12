@@ -286,25 +286,29 @@ class Cache:
             result += self._match_query(entity, rest_query)
         return result
 
-    @classmethod
     @PIPELINE_GET
-    def _get(cls, name: str, key: str, default: typing.Optional[typing.Any] = None):
-        return cls.GET_METHOD(name, key, default)
+    def _get(self, name: str, key: str, default: typing.Optional[typing.Any] = None):
+        """Internal method. PLEASE DONT CHANGE!"""
 
-    @classmethod
+        return self.GET_METHOD(name, key, default)
+
     @PIPELINE_CREATE
-    def _set(cls, name, key, value):
-        return cls.SET_METHOD(cls, name, key, value)
+    def _set(self, name, key, value):
+        """Internal method. PLEASE DONT CHANGE!"""
 
-    @classmethod
+        return self.SET_METHOD(name, key, value)
+
     @PIPELINE_UPDATE
-    def _update(cls, name, key, value):
-        return cls.UPDATE_METHOD(cls, name, key, value)
+    def _update(self, name, key, value):
+        """Internal method. PLEASE DONT CHANGE!"""
 
-    @classmethod
+        return self.UPDATE_METHOD(name, key, value)
+
     @PIPELINE_DELETE
-    def _delete(cls, name, key):
-        return cls.DELETE_METHOD(cls, name, key)
+    def _delete(self, name, key):
+        """Internal method. PLEASE DONT CHANGE!"""
+
+        return self.DELETE_METHOD(name, key)
 
 
 @Cache.PIPELINE_GET.add_action("after")
