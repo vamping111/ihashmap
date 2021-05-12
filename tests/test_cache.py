@@ -13,7 +13,7 @@ def fake_cache():
 
 @pytest.fixture
 def fake_get(fake_cache):
-    def _get(name, key, default):
+    def _get(self, name, key, default):
         return fake_cache[name].get(key, default)
 
     return _get
@@ -21,7 +21,7 @@ def fake_get(fake_cache):
 
 @pytest.fixture
 def fake_set(fake_cache):
-    def _set(name, key, value):
+    def _set(self, name, key, value):
         fake_cache.setdefault(name, {})[key] = value
         return value
 
@@ -145,16 +145,18 @@ def test_Cache_search(fake_cache, fake_set, fake_get, fake_delete, fake_update):
     Cache.register_get_method(fake_get)
     Cache.register_delete_method(fake_delete)
 
+    cache = Cache()
+
     entity = UserDict({"_id": "12345", "test_key": "test_value"})
-    Cache.set("test", "12345", entity)
+    cache.set("test", "12345", entity)
 
     assert "12345" in fake_cache["test"]
     assert fake_cache["test"]["12345"] == entity
     assert len(fake_cache["test"]) == 2
 
-    assert Cache.search("test", {"_id": "12345"}) == [entity]
-    assert Cache.search("test", {"_id": "12345", "success": "True"}) == []
-    assert Cache.search("test", {"success": True}) == []
-    assert Cache.search("test", {"_id": lambda _id: _id in ["4322", "12345"]}) == [
+    assert cache.search("test", {"_id": "12345"}) == [entity]
+    assert cache.search("test", {"_id": "12345", "success": "True"}) == []
+    assert cache.search("test", {"success": True}) == []
+    assert cache.search("test", {"_id": lambda _id: _id in ["4322", "12345"]}) == [
         entity
     ]

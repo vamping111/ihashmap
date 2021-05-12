@@ -122,9 +122,8 @@ class Cache:
     DELETE_METHOD = lambda name, key: None
     """METHODS placeholders. You should register yours."""
 
-    @classmethod
     @PIPELINE_CREATE
-    def set(cls, name: str, key: str, value: typing.Mapping):
+    def set(self, name: str, key: str, value: typing.Mapping):
         """Wrapper for pipeline execution.
 
         :param str name: cache name.
@@ -133,11 +132,10 @@ class Cache:
         :return:
         """
 
-        return cls.SET_METHOD(name, key, value)
+        return self.SET_METHOD(name, key, value)
 
-    @classmethod
     @PIPELINE_GET
-    def get(cls, name: str, key: str, default: typing.Optional[typing.Any] = None):
+    def get(self, name: str, key: str, default: typing.Optional[typing.Any] = None):
         """Wrapper for pipeline execution.
 
         :param str name: cache name.
@@ -147,11 +145,10 @@ class Cache:
         :return:
         """
 
-        return cls.GET_METHOD(name, key, default)
+        return self.GET_METHOD(name, key, default)
 
-    @classmethod
     @PIPELINE_UPDATE
-    def update(cls, name: str, key: str, value: typing.Mapping):
+    def update(self, name: str, key: str, value: typing.Mapping):
         """Wrapper for pipeline execution.
 
         :param str name: cache name.
@@ -159,18 +156,17 @@ class Cache:
         :param dict value: stored value.
         """
 
-        return cls.UPDATE_METHOD(name, key, value)
+        return self.UPDATE_METHOD(name, key, value)
 
-    @classmethod
     @PIPELINE_DELETE
-    def delete(cls, name: str, key: str):
+    def delete(self, name: str, key: str):
         """Wrapper for pipeline execution.
 
         :param str name: cache name.
         :param str key: hash key.
         """
 
-        return cls.DELETE_METHOD(name, key)
+        return self.DELETE_METHOD(name, key)
 
     def all(self, name: str):
         """Finds all values in cache.
@@ -245,9 +241,8 @@ class Cache:
             matched.append(value)
         return matched
 
-    @classmethod
     def search(
-        cls,
+        self,
         name: str,
         search_query: typing.Mapping[
             str, typing.Union[str, int, tuple, list, typing.Callable]
@@ -272,7 +267,7 @@ class Cache:
             )
         best_choice_index = index_match.index(max(index_match))
         best_index = indexes[best_choice_index]
-        index_data = cls.get(name, best_index.get_name())
+        index_data = self.get(name, best_index.get_name())
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
@@ -284,11 +279,11 @@ class Cache:
             if key not in best_index.keys
         }
         for value in index_data:
-            matched += cls._match_query(value, subquery)
+            matched += self._match_query(value, subquery)
         result = []
         for value in matched:
-            entity = cls.get(name, value[cls.PRIMARY_KEY])
-            result += cls._match_query(entity, rest_query)
+            entity = self.get(name, value[self.PRIMARY_KEY])
+            result += self._match_query(entity, rest_query)
         return result
 
 

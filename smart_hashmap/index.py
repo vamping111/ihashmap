@@ -63,11 +63,11 @@ class Index:
         :return:
         """
 
-        index_data: list = Cache.get(
+        index_data: list = ctx.cls_or_self.get(
             ctx.name, cls.get_name(), default=collections.UserList()
         )
         index_data.append(cls.get_index(ctx.result))
-        Cache.SET_METHOD(ctx.name, cls.get_name(), index_data)
+        ctx.cls_or_self.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
     @classmethod
     def before_delete(cls, ctx: PipelineContext):
