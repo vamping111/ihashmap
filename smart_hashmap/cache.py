@@ -177,10 +177,10 @@ class Cache:
 
         index_name = f"index:{self.PRIMARY_KEY}"
 
-        index_data = Cache().get(name, index_name, default=collections.UserList())
+        index_data = self._get(name, index_name, default=collections.UserList())
         result = []
         for item_key in index_data:
-            result.append(Cache().get(name, item_key))
+            result.append(self._get(name, item_key))
         return result
 
     @classmethod
@@ -267,7 +267,7 @@ class Cache:
             )
         best_choice_index = index_match.index(max(index_match))
         best_index = indexes[best_choice_index]
-        index_data = Cache().get(name, best_index.get_name())
+        index_data = self._get(name, best_index.get_name())
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
@@ -282,9 +282,29 @@ class Cache:
             matched += self._match_query(value, subquery)
         result = []
         for value in matched:
-            entity = Cache().get(name, value[self.PRIMARY_KEY])
+            entity = self._get(name, value[self.PRIMARY_KEY])
             result += self._match_query(entity, rest_query)
         return result
+
+    @classmethod
+    @PIPELINE_GET
+    def _get(cls, name: str, key: str, default: typing.Optional[typing.Any] = None):
+        return cls.GET_METHOD(name, key, default)
+
+    @classmethod
+    @PIPELINE_CREATE
+    def _set(cls, name, key, value):
+        return cls.SET_METHOD(cls, name, key, value)
+
+    @classmethod
+    @PIPELINE_UPDATE
+    def _update(cls, name, key, value):
+        return cls.UPDATE_METHOD(cls, name, key, value)
+
+    @classmethod
+    @PIPELINE_DELETE
+    def _delete(cls, name, key):
+        return cls.DELETE_METHOD(cls, name, key)
 
 
 @Cache.PIPELINE_GET.add_action("after")
