@@ -1,7 +1,7 @@
 import collections
 import typing
 
-from smart_hashmap.cache import Cache
+from smart_hashmap.cache import Cache, PipelineContext
 
 
 class Index:
@@ -13,24 +13,27 @@ class Index:
     __INDEXES__ = {}
     """Storage for all existing indexes."""
 
+    HOOKS = [
+        ("before_create", Cache.PIPELINE_CREATE),
+        ("after_create", Cache.PIPELINE_CREATE),
+        ("before_get", Cache.PIPELINE_GET),
+        ("after_get", Cache.PIPELINE_GET),
+        ("before_update", Cache.PIPELINE_UPDATE),
+        ("after_update", Cache.PIPELINE_UPDATE),
+        ("before_delete", Cache.PIPELINE_DELETE),
+        ("after_delete", Cache.PIPELINE_DELETE),
+    ]
+
     def __init_subclass__(cls, **kwargs):
         if hasattr(cls, "cache_name"):
             cls.__INDEXES__.setdefault(cls.cache_name, []).append(cls)
         else:
             cls.__INDEXES__.setdefault("__global__", []).append(cls)
 
-        cls.before_create = Cache.PIPELINE_CREATE.add_action("before")(
-            cls.before_create
-        )
-        cls.create = Cache.PIPELINE_CREATE.add_action("after")(cls.create)
-        cls.before_update = Cache.PIPELINE_UPDATE.add_action("before")(
-            cls.before_update
-        )
-        cls.update = Cache.PIPELINE_UPDATE.add_action("after")(cls.update)
-        cls.before_update = Cache.PIPELINE_DELETE.add_action("before")(
-            cls.before_delete
-        )
-        cls.delete = Cache.PIPELINE_DELETE.add_action("after")(cls.delete)
+        for hook, pipe in cls.HOOKS:
+            if hasattr(cls, hook):
+                hook_action = getattr(cls, hook)
+                setattr(cls, hook, pipe.add_action(hook.split("_")[0])(hook_action))
 
     @classmethod
     def get_name(cls):
@@ -53,134 +56,58 @@ class Index:
         return ":".join(values)
 
     @classmethod
-    def before_create(
-        cls,
-        ctx: dict,
-        cache_cls: typing.Type,
-        name: str,
-        key: str,
-        value: typing.Mapping,
-    ):
-        """Saves cache name for future use in pipeline.
-
-        :param ctx: Pipeline context.
-        :param cache_cls: Cache cls.
-        :param name: cache name.
-        :param key: stored key.
-        :param value: stored value.
-        :return: None
-        """
-
-        ctx["before_create"] = {"cache_name": name}
-
-    @classmethod
-    def create(cls, ctx: dict, result: typing.Mapping):
+    def after_create(cls, ctx: PipelineContext):
         """Creates index based on pipeline context and creation result.
 
-        :param dict ctx: Pipeline context.
-        :param dict result: value storing result.
+        :param ctx: Pipeline context.
         :return:
         """
 
-        cache_name = ctx["before_create"]["cache_name"]
         index_data: list = Cache.get(
-            cache_name, cls.get_name(), default=collections.UserList()
+            ctx.name, cls.get_name(), default=collections.UserList()
         )
-        index_data.append(cls.get_index(result))
-        Cache.SET_METHOD(cache_name, cls.get_name(), index_data)
-        return result
+        index_data.append(cls.get_index(ctx.result))
+        Cache.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
     @classmethod
-    def before_delete(
-        cls,
-        ctx: dict,
-        cache_cls: typing.Type,
-        name: str,
-        key: str,
-        value: typing.Mapping,
-    ):
+    def before_delete(cls, ctx: PipelineContext):
         """Saves cache name for future use in pipeline.
 
         :param ctx: Pipeline context.
-        :param cache_cls: Cache cls.
-        :param name: cache name.
-        :param key: stored key.
-        :param value: stored value.
-        :return: None
         """
 
-        value = Cache.get(name, key)
+        value = Cache.get(ctx.name, ctx.args[0])
         keys = []
         for key in cls.keys:
             keys.append(value.__shadow_copy__[key])
-        ctx["before_delete"] = {
-            "cache_name": name,
-            "keys": ":".join(keys),
-        }
+        ctx.local_data["before_delete"] = {"keys": ":".join(keys)}
 
     @classmethod
-    def delete(cls, ctx: dict, result: typing.Mapping):
+    def after_delete(cls, ctx: PipelineContext):
         """Deletes index based on pipeline context.
 
         :param dict ctx: Pipeline context.
-        :param dict result: value storing result.
         """
 
-        cache_name = ctx["before_delete"]["cache_name"]
-        index_data: list = Cache.get(cache_name, cls.get_name()) or []
-        index_data.remove(ctx["before_delete"]["keys"])
-        Cache.SET_METHOD(cache_name, cls.get_name(), index_data)
-        return result
+        index_data: list = Cache.get(ctx.name, cls.get_name()) or []
+        index_data.remove(ctx.local_data["before_delete"]["keys"])
+        Cache.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
     @classmethod
-    def before_update(
-        cls,
-        ctx: dict,
-        cache_cls: typing.Type,
-        name: str,
-        key: str,
-        value: typing.Mapping,
-    ):
-        """Saves cache name for future use in pipeline.
-
-        :param ctx: Pipeline context.
-        :param cache_cls: Cache cls.
-        :param name: cache name.
-        :param key: stored key.
-        :param value: stored value.
-        :return: None
-        """
-
-        keys = []
-        keys_new = []
-        for key in cls.keys:
-            keys.append(value.__shadow_copy__[key])
-            keys_new.append(value[key])
-        ctx["before_update"] = {
-            "cache_name": name,
-            "keys": ":".join(keys),
-            "need_update": keys != keys_new,
-            "new_value": value,
-        }
-
-    @classmethod
-    def update(cls, ctx: dict, result: typing.Mapping):
+    def after_update(cls, ctx: PipelineContext):
         """Updates index based on pipeline context.
 
         :param dict ctx: Pipeline context.
-        :param dict result: value storing result.
         """
 
-        if ctx["before_update"]["need_update"]:
-            cache_name = ctx["before_update"]["cache_name"]
-            index_data: list = Cache.get(cache_name, cls.get_name()) or []
+        if cls.get_index(ctx.args[0].__shadow_copy__) != cls.get_index(ctx.result):
+            index_data: list = Cache.get(ctx.name, cls.get_name()) or []
             try:
-                index_data.remove(ctx["before_update"]["keys"])
+                index_data.remove(cls.get_index(ctx.args[0].__shadow_copy__))
             except ValueError:
                 pass
-            index_data.append(cls.get_index(ctx["before_update"]["new_value"]))
-            Cache.SET_METHOD(cache_name, cls.get_name(), index_data)
-        return result
+            index_data.append(cls.get_index(ctx.result))
+            Cache.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
     @classmethod
     def find_index_for_cache(cls, cache_name: str) -> typing.List["Index"]:

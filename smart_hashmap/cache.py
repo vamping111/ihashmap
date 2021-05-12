@@ -11,30 +11,33 @@ class Action:
         self.f = f
         self.cache_name = cache_name
 
-    def execute_before(
-        self, ctx: dict, cls: typing.Type["Cache"], *args, **kwargs
-    ) -> None:
+    def execute_before(self, ctx: "PipelineContext") -> None:
         """Executes action before main function.
 
         :param dict ctx: Pipeline context.
-        :param type cls: Cache cls.
-        :param tuple args: main function args.
-        :param dict kwargs: main function kwargs.
         :return: None
         """
 
-        self.f(ctx, cls, *args, **kwargs)
+        self.f(ctx)
 
-    def execute_after(self, ctx: dict, result: typing.Any) -> typing.Any:
+    def execute_after(self, ctx: "PipelineContext") -> None:
         """Executes function after main function.
 
         :param dict ctx: Pipeline context.
-        :param typing.Any result: main function execution result.
-                                  (Can be modified by other actions).
         :return: typing.Any modified/unmodified main function result
         """
 
-        return self.f(ctx, result)
+        return self.f(ctx)
+
+
+class PipelineContext:
+    def __init__(self, cls_or_self, name, *args, **kwargs):
+        self.cls_or_self = cls_or_self
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+        self.result = None
+        self.local_data = {}
 
 
 class Pipeline:
@@ -63,15 +66,15 @@ class Pipeline:
 
         @functools.wraps(f)
         def wrap(cls, name, *args, **kwargs):
-            ctx = {}
+            ctx = PipelineContext(cls, name, *args, **kwargs)
             for action in self.pipe_before:
                 if action.cache_name == name or action.cache_name is None:
-                    action.execute_before(ctx, cls, name, *args, **kwargs)
-            result = f(cls, name, *args, **kwargs)
+                    action.execute_before(ctx)
+            ctx.result = f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
             for action in self.pipe_after:
                 if action.cache_name == name or action.cache_name is None:
-                    result = action.execute_after(ctx, result)
-            return result
+                    action.execute_after(ctx)
+            return ctx.result
 
         return wrap
 
@@ -274,13 +277,11 @@ class Cache:
 
 
 @Cache.PIPELINE_GET.add_action("after")
-def shadow_copy(ctx: dict, result: typing.Any) -> typing.Any:
+def shadow_copy(ctx: PipelineContext) -> typing.Any:
     """Creates dict copy for future use in pipelines.
 
     :param dict ctx: Pipeline context.
-    :param result: function execution result.
     :return: function result
     """
 
-    result.__shadow_copy__ = copy.copy(result)
-    return result
+    ctx.result.__shadow_copy__ = copy.copy(ctx.result)

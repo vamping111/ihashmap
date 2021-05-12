@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from smart_hashmap.cache import Action, Cache, Pipeline
+from smart_hashmap.cache import Action, Cache, Pipeline, PipelineContext
 
 
 @pytest.fixture
@@ -45,20 +45,21 @@ def test_Action_execute_before():
 
     mocked_function = MagicMock()
     action = Action(mocked_function)
-    action.execute_before({}, "fake")
+    ctx = PipelineContext("fake", "fake")
+    action.execute_before(ctx)
     assert mocked_function.called
     assert mocked_function.call_count == 1
-    assert mocked_function.call_args[0] == ({}, "fake")
+    assert mocked_function.call_args[0] == (ctx, )
 
 
 def test_Action_execution_after():
     mocked_function = MagicMock()
     action = Action(mocked_function)
-    call_args = ({"fake_context": True}, {"_id": "1234"})
-    action.execute_after(*call_args)
+    ctx = PipelineContext("fake", "fake")
+    action.execute_after(ctx)
     assert mocked_function.called
     assert mocked_function.call_count == 1
-    assert mocked_function.call_args[0] == call_args
+    assert mocked_function.call_args[0] == (ctx,)
 
 
 def test_Pipeline___call__():
@@ -78,7 +79,12 @@ def test_Pipeline___call__():
 
     assert mocked_function.called
     assert mocked_function.call_count == 1
-    assert mocked_function.call_args[0] == ({}, "fake1", "fake2", "fake3", "fake4")
+    assert isinstance(mocked_function.call_args[0][0], PipelineContext)
+    ctx: PipelineContext = mocked_function.call_args[0][0]
+    assert ctx.cls_or_self == "fake1"
+    assert ctx.name == "fake2"
+    assert ctx.args == ("fake3", "fake4")
+    assert mocked_function.call_args[0] == (ctx, )
 
 
 def test_Pipeline_add_action():
