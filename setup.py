@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+import datetime
+
+import setuptools
+
+module_info = {
+    "name": "smart_cache",
+    "version": "0.0.1",
+    "description": "",
+    "author": "Yury Sokov aka. Yurzs",
+    "author_email": "yurzs+smart_cache@icloud.com",
+    "packages": setuptools.find_packages(exclude=("tests", "tests.*", "*.tests")),
+    "license": "MIT",
+    "keywords": ["cache", "indexes"],
+    "url": "https://git.yurzs.dev/yurzs/MDocument",
+    "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ],
+}
+
+with open("README.md") as long_description_file:
+    module_info["long_description"] = long_description_file.read()
+
+setuptools.setup(**module_info)

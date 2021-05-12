@@ -1,0 +1,10 @@
+.pytest_cache
+.idea
+.idea/*
+__pycache__
+__pycache__/*
+.pyc
+.pyo
+.venv
+.venv/*
+
