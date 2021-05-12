@@ -112,6 +112,8 @@ class Cache:
     PIPELINE_CREATE = Pipeline()
     PIPELINE_UPDATE = Pipeline()
     PIPELINE_DELETE = Pipeline()
+    PIPELINE_INDEX_GET = Pipeline()
+    PIPELINE_INDEX_SET = Pipeline()
 
     PRIMARY_KEY = "_id"
     """Values primary key existing in all values."""

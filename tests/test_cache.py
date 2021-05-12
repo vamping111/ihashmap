@@ -160,3 +160,4 @@ def test_Cache_search(fake_cache, fake_set, fake_get, fake_delete, fake_update):
     assert cache.search("test", {"_id": lambda _id: _id in ["4322", "12345"]}) == [
         entity
     ]
+
