@@ -132,7 +132,9 @@ class Index:
     @classmethod
     @Cache.PIPELINE_INDEX_GET
     def get(cls, cache_name):
-        return Cache.GET_METHOD(Cache, cache_name, cls.get_name(), default=collections.UserList())
+        return Cache.GET_METHOD(
+            Cache, cache_name, cls.get_name(), default=collections.UserList()
+        )
 
     @classmethod
     @Cache.PIPELINE_INDEX_SET

@@ -49,7 +49,7 @@ def test_Action_execute_before():
     action.execute_before(ctx)
     assert mocked_function.called
     assert mocked_function.call_count == 1
-    assert mocked_function.call_args[0] == (ctx, )
+    assert mocked_function.call_args[0] == (ctx,)
 
 
 def test_Action_execution_after():
@@ -84,7 +84,7 @@ def test_Pipeline___call__():
     assert ctx.cls_or_self == "fake1"
     assert ctx.name == "fake2"
     assert ctx.args == ("fake3", "fake4")
-    assert mocked_function.call_args[0] == (ctx, )
+    assert mocked_function.call_args[0] == (ctx,)
 
 
 def test_Pipeline_add_action():
@@ -160,4 +160,3 @@ def test_Cache_search(fake_cache, fake_set, fake_get, fake_delete, fake_update):
     assert cache.search("test", {"_id": lambda _id: _id in ["4322", "12345"]}) == [
         entity
     ]
-

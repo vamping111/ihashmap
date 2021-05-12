@@ -79,19 +79,37 @@ class Pipeline:
 
         return wrap
 
-    def add_action(self, position: str, cache_name: str = None) -> typing.Callable:
+    def add_action(
+        self, position: str, cache_name: str = None, pipe_position=-1
+    ) -> typing.Callable:
         """Decorator for adding action to pipeline.
 
         :param str position: action placement. Choices: "before"/"after".
         :param str cache_name: Name of cache to apply on. None for all.
+        :param pipe_position: specify position in pipe to push to. Last by default (-1).
         :return: typing.Callable: decorated function untouched.
         """
 
         def action_wrap(f):
+
             if position == "before":
-                self.pipe_before.append(Action(f, cache_name=cache_name))
+                insert_position = (
+                    len(self.pipe_before) - pipe_position + 1
+                    if pipe_position < 0
+                    else pipe_position
+                )
+                self.pipe_before.insert(
+                    insert_position, Action(f, cache_name=cache_name)
+                )
             elif position == "after":
-                self.pipe_after.append(Action(f, cache_name=cache_name))
+                insert_position = (
+                    len(self.pipe_after) - pipe_position + 1
+                    if pipe_position < 0
+                    else pipe_position
+                )
+                self.pipe_after.insert(
+                    insert_position, Action(f, cache_name=cache_name)
+                )
             return f
 
         return action_wrap
