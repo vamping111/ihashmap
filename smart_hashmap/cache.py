@@ -173,7 +173,6 @@ class Cache:
         return cls.DELETE_METHOD(name, key)
 
     @classmethod
-    @PIPELINE_GET
     def all(cls, name: str):
         """Finds all values in cache.
 
