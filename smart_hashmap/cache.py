@@ -1,3 +1,4 @@
+import collections
 import copy
 import functools
 import types
@@ -170,6 +171,23 @@ class Cache:
         """
 
         return cls.DELETE_METHOD(name, key)
+
+    @classmethod
+    @PIPELINE_GET
+    def all(cls, name: str):
+        """Finds all values in cache.
+
+        :param name:
+        :return:
+        """
+
+        index_name = f"index:{cls.PRIMARY_KEY}"
+
+        index_data = cls.get(name, index_name, default=collections.UserList())
+        result = []
+        for item_key in index_data:
+            result.append(cls.get(name, item_key))
+        return result
 
     @classmethod
     def register_get_method(cls, method: typing.Callable):
