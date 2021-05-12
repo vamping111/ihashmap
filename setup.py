@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-import datetime
 
 import setuptools
 
 module_info = {
-    "name": "smart_cache",
+    "name": "smart_hashmap",
     "version": "0.0.1",
     "description": "",
     "author": "Yury Sokov aka. Yurzs",
-    "author_email": "yurzs+smart_cache@icloud.com",
+    "author_email": "yurzs+smart_hashmap@icloud.com",
     "packages": setuptools.find_packages(exclude=("tests", "tests.*", "*.tests")),
     "license": "MIT",
     "keywords": ["cache", "indexes"],
-    "url": "https://git.yurzs.dev/yurzs/MDocument",
+    "url": "https://git.yurzs.dev/yurzs/smart_hashmap",
     "classifiers": [
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",

@@ -243,7 +243,7 @@ class Cache:
         :return: list of matching values.
         """
 
-        from smart_cache.index import Index
+        from smart_hashmap.index import Index
 
         index_match = []
         indexes = Index.find_index_for_cache(name)

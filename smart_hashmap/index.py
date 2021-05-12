@@ -1,7 +1,7 @@
 import collections
 import typing
 
-from smart_cache.cache import Cache
+from smart_hashmap.cache import Cache
 
 
 class Index:

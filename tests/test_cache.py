@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from smart_cache.cache import Action, Cache, Pipeline
+from smart_hashmap.cache import Action, Cache, Pipeline
 
 
 @pytest.fixture
