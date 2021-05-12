@@ -116,10 +116,10 @@ class Cache:
     PRIMARY_KEY = "_id"
     """Values primary key existing in all values."""
 
-    GET_METHOD = lambda name, key, default=None: None
-    SET_METHOD = lambda name, key, value: None
-    UPDATE_METHOD = lambda name, key, value: None
-    DELETE_METHOD = lambda name, key: None
+    GET_METHOD = lambda cache, name, key, default=None: None
+    SET_METHOD = lambda cache, name, key, value: None
+    UPDATE_METHOD = lambda cache, name, key, value: None
+    DELETE_METHOD = lambda cache, name, key: None
     """METHODS placeholders. You should register yours."""
 
     @PIPELINE_CREATE
@@ -177,10 +177,10 @@ class Cache:
 
         index_name = f"index:{self.PRIMARY_KEY}"
 
-        index_data = self.get(name, index_name, default=collections.UserList())
+        index_data = Cache().get(name, index_name, default=collections.UserList())
         result = []
         for item_key in index_data:
-            result.append(self.get(name, item_key))
+            result.append(Cache().get(name, item_key))
         return result
 
     @classmethod
@@ -267,7 +267,7 @@ class Cache:
             )
         best_choice_index = index_match.index(max(index_match))
         best_index = indexes[best_choice_index]
-        index_data = self.get(name, best_index.get_name())
+        index_data = Cache().get(name, best_index.get_name())
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
@@ -282,7 +282,7 @@ class Cache:
             matched += self._match_query(value, subquery)
         result = []
         for value in matched:
-            entity = self.get(name, value[self.PRIMARY_KEY])
+            entity = Cache().get(name, value[self.PRIMARY_KEY])
             result += self._match_query(entity, rest_query)
         return result
 
