@@ -172,20 +172,19 @@ class Cache:
 
         return cls.DELETE_METHOD(name, key)
 
-    @classmethod
-    def all(cls, name: str):
+    def all(self, name: str):
         """Finds all values in cache.
 
         :param name:
         :return:
         """
 
-        index_name = f"index:{cls.PRIMARY_KEY}"
+        index_name = f"index:{self.PRIMARY_KEY}"
 
-        index_data = cls.get(name, index_name, default=collections.UserList())
+        index_data = self.get(name, index_name, default=collections.UserList())
         result = []
         for item_key in index_data:
-            result.append(cls.get(name, item_key))
+            result.append(self.get(name, item_key))
         return result
 
     @classmethod
