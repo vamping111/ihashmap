@@ -75,8 +75,8 @@ class Index:
         """
 
         value = ctx.local_data["original_value"]
-        index_data = cls.get(ctx.name)
-        index_data.append(cls.get_index(value))
+        index_data = set(cls.get(ctx.name))
+        index_data.add(cls.get_index(value))
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -99,7 +99,7 @@ class Index:
         :param dict ctx: Pipeline context.
         """
 
-        index_data = cls.get(ctx.name)
+        index_data = set(cls.get(ctx.name))
         index_data.remove(ctx.local_data["before_delete"]["keys"])
         ctx.cls_or_self.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
@@ -119,12 +119,12 @@ class Index:
 
         value = ctx.local_data["original_value"]
         if cls.get_index(value.__shadow_copy__) != cls.get_index(ctx.result):
-            index_data = cls.get(ctx.name)
+            index_data = set(cls.get(ctx.name))
             try:
                 index_data.remove(cls.get_index(value.__shadow_copy__))
             except ValueError:
                 pass
-            index_data.append(cls.get_index(ctx.result))
+            index_data.add(cls.get_index(ctx.result))
             cls.set(ctx.name, index_data)
 
     @classmethod
@@ -140,7 +140,9 @@ class Index:
         )
 
     @classmethod
-    def get_values(cls, index_data) -> typing.List[dict]:
+    def get_values(
+        cls, index_data: typing.Union[typing.List, typing.Tuple, typing.Set]
+    ) -> typing.List[dict]:
         """Formats cache value in dict format.
 
         :param str index_data: index data.

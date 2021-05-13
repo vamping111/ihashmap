@@ -287,7 +287,7 @@ class Cache:
             )
         best_choice_index = index_match.index(max(index_match))
         best_index = indexes[best_choice_index]
-        index_data = self._get(name, best_index.get_name())
+        index_data = set(best_index.get(name))
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
