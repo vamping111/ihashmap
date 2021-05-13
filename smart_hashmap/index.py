@@ -33,7 +33,11 @@ class Index:
         for hook, pipe in cls.HOOKS:
             if hasattr(cls, hook):
                 hook_action = getattr(cls, hook)
-                setattr(cls, hook, pipe.add_action(hook.split("_")[0])(hook_action))
+                setattr(
+                    cls,
+                    hook,
+                    pipe.add_action(hook.split("_")[0], pipe_position=0)(hook_action),
+                )
 
     @classmethod
     def get_name(cls):
@@ -92,16 +96,24 @@ class Index:
         ctx.cls_or_self.SET_METHOD(ctx.name, cls.get_name(), index_data)
 
     @classmethod
+    def before_update(cls, ctx: PipelineContext):
+        """Create value copy."""
+
+        key, value = ctx.args
+        ctx.local_data["original_value"] = value
+
+    @classmethod
     def after_update(cls, ctx: PipelineContext):
         """Updates index based on pipeline context.
 
         :param dict ctx: Pipeline context.
         """
 
-        if cls.get_index(ctx.args[0].__shadow_copy__) != cls.get_index(ctx.result):
+        value = ctx.local_data["original_value"]
+        if cls.get_index(value.__shadow_copy__) != cls.get_index(ctx.result):
             index_data = cls.get(ctx.name)
             try:
-                index_data.remove(cls.get_index(ctx.args[0].__shadow_copy__))
+                index_data.remove(cls.get_index(value.__shadow_copy__))
             except ValueError:
                 pass
             index_data.append(cls.get_index(ctx.result))
