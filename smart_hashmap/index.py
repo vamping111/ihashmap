@@ -60,6 +60,13 @@ class Index:
         return ":".join(values)
 
     @classmethod
+    def before_create(cls, ctx: PipelineContext):
+        """Stores original value for after_create usage."""
+
+        key, value = ctx.args
+        ctx.local_data["original_value"] = value
+
+    @classmethod
     def after_create(cls, ctx: PipelineContext):
         """Creates index based on pipeline context and creation result.
 
@@ -67,8 +74,9 @@ class Index:
         :return:
         """
 
+        value = ctx.local_data["original_value"]
         index_data = cls.get(ctx.name)
-        index_data.append(cls.get_index(ctx.result))
+        index_data.append(cls.get_index(value))
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -97,7 +105,7 @@ class Index:
 
     @classmethod
     def before_update(cls, ctx: PipelineContext):
-        """Create value copy."""
+        """Creates value copy for after_update usage."""
 
         key, value = ctx.args
         ctx.local_data["original_value"] = value
