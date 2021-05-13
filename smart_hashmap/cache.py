@@ -331,6 +331,11 @@ class Cache:
 
         return self.DELETE_METHOD(name, key)
 
+    def __init_subclass__(cls, **kwargs):
+        for attr_name in dir(cls):
+            if attr_name.startswith("PIPELINE_"):
+                setattr(cls, attr_name, copy.deepcopy(getattr(cls, attr_name)))
+
 
 @Cache.PIPELINE_GET.add_action("after")
 def shadow_copy(ctx: PipelineContext) -> typing.Any:
