@@ -1,3 +1,4 @@
+import collections
 from collections import UserDict
 from unittest.mock import MagicMock
 
@@ -13,7 +14,7 @@ def fake_cache():
 
 @pytest.fixture
 def fake_get(fake_cache):
-    def _get(self, name, key, default):
+    def _get(self, name, key, default=None):
         return fake_cache[name].get(key, default)
 
     return _get
@@ -35,8 +36,8 @@ def fake_update(fake_cache):
 
 @pytest.fixture
 def fake_delete(fake_cache):
-    def _delete(key):
-        del fake_cache[key]
+    def _delete(self, name, key):
+        del fake_cache[name][key]
 
     return _delete
 
@@ -160,3 +161,37 @@ def test_Cache_search(fake_cache, fake_set, fake_get, fake_delete, fake_update):
     assert cache.search("test", {"_id": lambda _id: _id in ["4322", "12345"]}) == [
         entity
     ]
+
+
+def test_Cache_subclassing(fake_cache, fake_delete, fake_get, fake_set, fake_update):
+    Cache.register_set_method(fake_set)
+    Cache.register_delete_method(fake_delete)
+    Cache.register_get_method(fake_get)
+    Cache.register_update_method(fake_update)
+
+    class CacheV2(Cache):
+        pass
+
+    assert CacheV2.PIPELINE_DELETE.parent_pipeline is Cache.PIPELINE_DELETE
+
+    mocked_function = MagicMock()
+    CacheV2.PIPELINE_DELETE.add_action("before")(mocked_function)
+
+    assert mocked_function in [
+        action.f for action in CacheV2.PIPELINE_DELETE.pipe_before
+    ]
+    assert mocked_function not in [
+        action.f for action in Cache.PIPELINE_DELETE.pipe_before
+    ]
+
+    cache = Cache()
+
+    cache.set(
+        "fake_name",
+        "fake_pk",
+        collections.UserDict({"fake_value": True, "_id": "fake_pk"}),
+    )
+    cache.get("fake_name", "fake_pk", default=collections.UserDict())
+    cache.delete("fake_name", "fake_pk")
+
+    assert not mocked_function.called

@@ -51,10 +51,35 @@ class Pipeline:
     temporary data between actions.
     """
 
-    def __init__(self):
+    def __init__(self, parent_pipeline=None):
         self.pipe_before = []
         self.pipe_after = []
         self.f = None
+        self.parent_pipeline: Pipeline = parent_pipeline
+
+    def wrap_before(self, ctx: PipelineContext):
+        """Executes all actions in parents pipe_before and this pipes."""
+
+        for action in self.pipe_before:
+            if action.cache_name == ctx.name or action.cache_name is None:
+                action.execute_before(ctx)
+
+    def wrap_after(self, ctx: PipelineContext):
+        """Executes all actions in parents pipe_after and this pipes."""
+
+        for action in self.pipe_after:
+            if action.cache_name == ctx.name or action.cache_name is None:
+                action.execute_after(ctx)
+
+    def wrap_action(self, ctx: PipelineContext):
+        if self.parent_pipeline is not None:
+            self.parent_pipeline.wrap_before(ctx)
+        self.wrap_before(ctx)
+        ctx.result = self.f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
+        if self.parent_pipeline is not None:
+            self.parent_pipeline.wrap_after(ctx)
+        self.wrap_after(ctx)
+        return ctx.result
 
     def __call__(self, f: typing.Callable) -> typing.Callable:
         """Wrapper around main function.
@@ -69,14 +94,7 @@ class Pipeline:
         @functools.wraps(f)
         def wrap(cls, name, *args, **kwargs):
             ctx = PipelineContext(self.f, cls, name, *args, **kwargs)
-            for action in self.pipe_before:
-                if action.cache_name == name or action.cache_name is None:
-                    action.execute_before(ctx)
-            ctx.result = f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
-            for action in self.pipe_after:
-                if action.cache_name == name or action.cache_name is None:
-                    action.execute_after(ctx)
-            return ctx.result
+            return self.wrap_action(ctx)
 
         return wrap
 
@@ -334,7 +352,9 @@ class Cache:
     def __init_subclass__(cls, **kwargs):
         for attr_name in dir(cls):
             if attr_name.startswith("PIPELINE_"):
-                setattr(cls, attr_name, copy.deepcopy(getattr(cls, attr_name)))
+                setattr(
+                    cls, attr_name, Pipeline(parent_pipeline=getattr(cls, attr_name))
+                )
 
 
 @Cache.PIPELINE_GET.add_action("after")

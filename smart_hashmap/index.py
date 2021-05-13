@@ -86,7 +86,9 @@ class Index:
         :param ctx: Pipeline context.
         """
 
-        value = Cache.get(ctx.name, ctx.args[0])
+        (key,) = ctx.args
+        cache = ctx.cls_or_self
+        value = cache.get(ctx.name, key)
         keys = []
         for key in cls.keys:
             keys.append(value.__shadow_copy__[key])
