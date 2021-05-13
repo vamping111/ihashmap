@@ -60,6 +60,9 @@ class Pipeline:
     def wrap_before(self, ctx: PipelineContext):
         """Executes all actions in parents pipe_before and this pipes."""
 
+        if self.parent_pipeline is not None:
+            self.parent_pipeline.wrap_before(ctx)
+
         for action in self.pipe_before:
             if action.cache_name == ctx.name or action.cache_name is None:
                 action.execute_before(ctx)
@@ -67,17 +70,16 @@ class Pipeline:
     def wrap_after(self, ctx: PipelineContext):
         """Executes all actions in parents pipe_after and this pipes."""
 
+        if self.parent_pipeline is not None:
+            self.parent_pipeline.wrap_after(ctx)
+
         for action in self.pipe_after:
             if action.cache_name == ctx.name or action.cache_name is None:
                 action.execute_after(ctx)
 
     def wrap_action(self, ctx: PipelineContext):
-        if self.parent_pipeline is not None:
-            self.parent_pipeline.wrap_before(ctx)
         self.wrap_before(ctx)
         ctx.result = self.f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
-        if self.parent_pipeline is not None:
-            self.parent_pipeline.wrap_after(ctx)
         self.wrap_after(ctx)
         return ctx.result
 
