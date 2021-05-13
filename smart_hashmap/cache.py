@@ -32,7 +32,8 @@ class Action:
 
 
 class PipelineContext:
-    def __init__(self, cls_or_self, name, *args, **kwargs):
+    def __init__(self, f, cls_or_self, name, *args, **kwargs):
+        self.f = f
         self.cls_or_self = cls_or_self
         self.name = name
         self.args = args
@@ -67,7 +68,7 @@ class Pipeline:
 
         @functools.wraps(f)
         def wrap(cls, name, *args, **kwargs):
-            ctx = PipelineContext(cls, name, *args, **kwargs)
+            ctx = PipelineContext(self.f, cls, name, *args, **kwargs)
             for action in self.pipe_before:
                 if action.cache_name == name or action.cache_name is None:
                     action.execute_before(ctx)

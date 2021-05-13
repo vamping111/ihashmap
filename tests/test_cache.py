@@ -45,7 +45,7 @@ def test_Action_execute_before():
 
     mocked_function = MagicMock()
     action = Action(mocked_function)
-    ctx = PipelineContext("fake", "fake")
+    ctx = PipelineContext(mocked_function, "fake", "fake")
     action.execute_before(ctx)
     assert mocked_function.called
     assert mocked_function.call_count == 1
@@ -55,7 +55,7 @@ def test_Action_execute_before():
 def test_Action_execution_after():
     mocked_function = MagicMock()
     action = Action(mocked_function)
-    ctx = PipelineContext("fake", "fake")
+    ctx = PipelineContext(mocked_function, "fake", "fake")
     action.execute_after(ctx)
     assert mocked_function.called
     assert mocked_function.call_count == 1
