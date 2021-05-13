@@ -352,9 +352,10 @@ class Cache:
     def __init_subclass__(cls, **kwargs):
         for attr_name in dir(cls):
             if attr_name.startswith("PIPELINE_"):
-                setattr(
-                    cls, attr_name, Pipeline(parent_pipeline=getattr(cls, attr_name))
-                )
+                parent_pipeline = getattr(cls, attr_name)
+                new_pipeline = Pipeline(parent_pipeline=parent_pipeline)
+                new_pipeline.f = getattr(cls, parent_pipeline.f.__name__)
+                setattr(cls, attr_name, new_pipeline)
 
 
 @Cache.PIPELINE_GET.add_action("after")
