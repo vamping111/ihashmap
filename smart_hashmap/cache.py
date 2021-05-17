@@ -73,7 +73,7 @@ class Pipeline:
     def wrap_after(self, ctx: PipelineContext):
         """Executes all actions in parents _pipe_after and this pipes."""
 
-        for action in self._pipe_after:
+        for action in self.pipe_after:
             action(ctx)
 
     def wrap_action(self, ctx: PipelineContext):
@@ -92,9 +92,13 @@ class Pipeline:
 
         @functools.wraps(f)
         def wrap(cls_or_self, name, *args, **kwargs):
+            from smart_hashmap.index import Index
+
             pipeline = self
             if isinstance(cls_or_self, Cache):
                 pipeline = getattr(cls_or_self.PIPELINE, self.name)
+            elif isinstance(cls_or_self, Index):
+                pipeline = getattr(Cache.PIPELINE. self.name)
             ctx = PipelineContext(f, cls_or_self, name, *args, **kwargs)
             return pipeline.wrap_action(ctx)
 
