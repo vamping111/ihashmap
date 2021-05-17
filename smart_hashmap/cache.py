@@ -1,34 +1,9 @@
 import collections
-import copy
 import functools
 import types
 import typing
 
-
-class Action:
-    """Pipeline action representation."""
-
-    def __init__(self, f, cache_name=None):
-        self.f = f
-        self.cache_name = cache_name
-
-    def execute_before(self, ctx: "PipelineContext") -> None:
-        """Executes action before main function.
-
-        :param dict ctx: Pipeline context.
-        :return: None
-        """
-
-        self.f(ctx)
-
-    def execute_after(self, ctx: "PipelineContext") -> None:
-        """Executes function after main function.
-
-        :param dict ctx: Pipeline context.
-        :return: typing.Any modified/unmodified main function result
-        """
-
-        return self.f(ctx)
+from smart_hashmap.action import Action
 
 
 class PipelineContext:
@@ -51,35 +26,59 @@ class Pipeline:
     temporary data between actions.
     """
 
-    def __init__(self, parent_pipeline=None):
-        self.pipe_before = []
-        self.pipe_after = []
-        self.f = None
-        self.parent_pipeline: Pipeline = parent_pipeline
+    def __init__(self, name, parent_pipe=None):
+        self.name = name
+        self.parent_pipe = parent_pipe
+        self._pipe_before = []
+        self._pipe_after = []
+
+    @property
+    def pipe_before(self):
+        pipe = []
+        if self.parent_pipe is not None:
+            pipe += self.parent_pipe.pipe_before
+        pipe += self._pipe_before
+        pipe.sort(key=lambda action: action.priority)
+        return pipe
+
+    @property
+    def pipe_after(self):
+        pipe = []
+        if self.parent_pipe is not None:
+            pipe += self.parent_pipe.pipe_after
+        pipe += self._pipe_after
+        pipe.sort(key=lambda action: action.priority)
+        return pipe
+
+    def before(self, priority=1):
+        def wrapper(f):
+            self._pipe_before.append(Action(f, priority))
+            return f
+
+        return wrapper
+
+    def after(self, priority=1):
+        def wrapper(f):
+            self._pipe_after.append(Action(f, priority))
+            return f
+
+        return wrapper
 
     def wrap_before(self, ctx: PipelineContext):
-        """Executes all actions in parents pipe_before and this pipes."""
-
-        if self.parent_pipeline is not None:
-            self.parent_pipeline.wrap_before(ctx)
+        """Executes all actions in parents _pipe_before and this pipes."""
 
         for action in self.pipe_before:
-            if action.cache_name == ctx.name or action.cache_name is None:
-                action.execute_before(ctx)
+            action(ctx)
 
     def wrap_after(self, ctx: PipelineContext):
-        """Executes all actions in parents pipe_after and this pipes."""
+        """Executes all actions in parents _pipe_after and this pipes."""
 
-        if self.parent_pipeline is not None:
-            self.parent_pipeline.wrap_after(ctx)
-
-        for action in self.pipe_after:
-            if action.cache_name == ctx.name or action.cache_name is None:
-                action.execute_after(ctx)
+        for action in self._pipe_after:
+            action(ctx)
 
     def wrap_action(self, ctx: PipelineContext):
         self.wrap_before(ctx)
-        ctx.result = self.f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
+        ctx.result = ctx.f(ctx.cls_or_self, ctx.name, *ctx.args, **ctx.kwargs)
         self.wrap_after(ctx)
         return ctx.result
 
@@ -91,49 +90,33 @@ class Pipeline:
         :return: wrapped function.
         """
 
-        self.f = f
-
         @functools.wraps(f)
-        def wrap(cls, name, *args, **kwargs):
-            ctx = PipelineContext(self.f, cls, name, *args, **kwargs)
-            return self.wrap_action(ctx)
+        def wrap(cls_or_self, name, *args, **kwargs):
+            pipeline = self
+            if isinstance(cls_or_self, Cache):
+                pipeline = getattr(cls_or_self.PIPELINE, self.name)
+            ctx = PipelineContext(f, cls_or_self, name, *args, **kwargs)
+            return pipeline.wrap_action(ctx)
 
         return wrap
 
-    def add_action(
-        self, position: str, cache_name: str = None, pipe_position=-1
-    ) -> typing.Callable:
-        """Decorator for adding action to pipeline.
 
-        :param str position: action placement. Choices: "before"/"after".
-        :param str cache_name: Name of cache to apply on. None for all.
-        :param pipe_position: specify position in pipe to push to. Last by default (-1).
-        :return: typing.Callable: decorated function untouched.
-        """
+class PipelineManager:
+    """Manager."""
 
-        def action_wrap(f):
+    def __init__(self, parent_manager=None):
+        self.pipes = {}
+        if parent_manager is not None:
+            self.set_parent(parent_manager)
 
-            if position == "before":
-                insert_position = (
-                    len(self.pipe_before) - pipe_position + 1
-                    if pipe_position < 0
-                    else pipe_position
-                )
-                self.pipe_before.insert(
-                    insert_position, Action(f, cache_name=cache_name)
-                )
-            elif position == "after":
-                insert_position = (
-                    len(self.pipe_after) - pipe_position + 1
-                    if pipe_position < 0
-                    else pipe_position
-                )
-                self.pipe_after.insert(
-                    insert_position, Action(f, cache_name=cache_name)
-                )
-            return f
+    def __getattr__(self, item):
+        if item not in self.pipes:
+            self.pipes[item] = Pipeline(item)
+        return self.pipes[item]
 
-        return action_wrap
+    def set_parent(self, parent_manager):
+        for pipe_name, pipe in parent_manager.pipes.items():
+            self.pipes[pipe_name] = Pipeline(pipe.name, parent_pipe=pipe)
 
 
 class Cache:
@@ -147,12 +130,7 @@ class Cache:
     Secondly create required indexes (pk index is required by default).
     """
 
-    PIPELINE_GET = Pipeline()
-    PIPELINE_CREATE = Pipeline()
-    PIPELINE_UPDATE = Pipeline()
-    PIPELINE_DELETE = Pipeline()
-    PIPELINE_INDEX_GET = Pipeline()
-    PIPELINE_INDEX_SET = Pipeline()
+    PIPELINE = PipelineManager()
 
     PRIMARY_KEY = "_id"
     """Values primary key existing in all values."""
@@ -163,7 +141,7 @@ class Cache:
     DELETE_METHOD = lambda cache, name, key: None
     """METHODS placeholders. You should register yours."""
 
-    @PIPELINE_CREATE
+    @PIPELINE.set
     def set(self, name: str, key: str, value: typing.Mapping):
         """Wrapper for pipeline execution.
 
@@ -175,7 +153,7 @@ class Cache:
 
         return self.SET_METHOD(name, key, value)
 
-    @PIPELINE_GET
+    @PIPELINE.get
     def get(self, name: str, key: str, default: typing.Optional[typing.Any] = None):
         """Wrapper for pipeline execution.
 
@@ -188,7 +166,7 @@ class Cache:
 
         return self.GET_METHOD(name, key, default)
 
-    @PIPELINE_UPDATE
+    @PIPELINE.update
     def update(self, name: str, key: str, value: typing.Mapping):
         """Wrapper for pipeline execution.
 
@@ -199,7 +177,7 @@ class Cache:
 
         return self.UPDATE_METHOD(name, key, value)
 
-    @PIPELINE_DELETE
+    @PIPELINE.delete
     def delete(self, name: str, key: str):
         """Wrapper for pipeline execution.
 
@@ -312,7 +290,9 @@ class Cache:
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
-            key: value for key, value in search_query.items() if key in best_index.keys
+            key: str(value)
+            for key, value in search_query.items()
+            if key in best_index.keys
         }
         rest_query = {
             key: value
@@ -327,45 +307,29 @@ class Cache:
             result += self._match_query(entity, rest_query)
         return result
 
-    @PIPELINE_GET
+    @PIPELINE.get
     def _get(self, name: str, key: str, default: typing.Optional[typing.Any] = None):
         """Internal method. PLEASE DONT CHANGE!"""
 
         return self.GET_METHOD(name, key, default)
 
-    @PIPELINE_CREATE
+    @PIPELINE.set
     def _set(self, name, key, value):
         """Internal method. PLEASE DONT CHANGE!"""
 
         return self.SET_METHOD(name, key, value)
 
-    @PIPELINE_UPDATE
+    @PIPELINE.update
     def _update(self, name, key, value):
         """Internal method. PLEASE DONT CHANGE!"""
 
         return self.UPDATE_METHOD(name, key, value)
 
-    @PIPELINE_DELETE
+    @PIPELINE.delete
     def _delete(self, name, key):
         """Internal method. PLEASE DONT CHANGE!"""
 
         return self.DELETE_METHOD(name, key)
 
     def __init_subclass__(cls, **kwargs):
-        for attr_name in dir(cls):
-            if attr_name.startswith("PIPELINE_"):
-                parent_pipeline = getattr(cls, attr_name)
-                new_pipeline = Pipeline(parent_pipeline=parent_pipeline)
-                new_pipeline.f = getattr(cls, parent_pipeline.f.__name__)
-                setattr(cls, attr_name, new_pipeline)
-
-
-@Cache.PIPELINE_GET.add_action("after")
-def shadow_copy(ctx: PipelineContext) -> typing.Any:
-    """Creates dict copy for future use in pipelines.
-
-    :param dict ctx: Pipeline context.
-    :return: function result
-    """
-
-    ctx.result.__shadow_copy__ = copy.copy(ctx.result)
+        cls.PIPELINE = PipelineManager(parent_manager=cls.PIPELINE)

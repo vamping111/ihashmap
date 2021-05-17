@@ -14,14 +14,14 @@ class Index:
     """Storage for all existing indexes."""
 
     HOOKS = [
-        ("before_create", Cache.PIPELINE_CREATE),
-        ("after_create", Cache.PIPELINE_CREATE),
-        ("before_get", Cache.PIPELINE_GET),
-        ("after_get", Cache.PIPELINE_GET),
-        ("before_update", Cache.PIPELINE_UPDATE),
-        ("after_update", Cache.PIPELINE_UPDATE),
-        ("before_delete", Cache.PIPELINE_DELETE),
-        ("after_delete", Cache.PIPELINE_DELETE),
+        ("before_create", Cache.PIPELINE.set.before()),
+        ("after_create", Cache.PIPELINE.set.after()),
+        ("before_get", Cache.PIPELINE.get.before()),
+        ("after_get", Cache.PIPELINE.get.after()),
+        ("before_update", Cache.PIPELINE.update.before()),
+        ("after_update", Cache.PIPELINE.update.after()),
+        ("before_delete", Cache.PIPELINE.delete.before()),
+        ("after_delete", Cache.PIPELINE.delete.after()),
     ]
 
     def __init_subclass__(cls, **kwargs):
@@ -30,14 +30,12 @@ class Index:
         else:
             cls.__INDEXES__.setdefault("__global__", []).append(cls)
 
-        for hook, pipe in cls.HOOKS:
+        for hook, pipe_wrapper in cls.HOOKS:
             if hasattr(cls, hook):
                 hook_action = getattr(cls, hook)
-                setattr(
-                    cls,
-                    hook,
-                    pipe.add_action(hook.split("_")[0], pipe_position=0)(hook_action),
-                )
+                setattr(cls, hook, pipe_wrapper(hook_action))
+
+        # TODO: rebuild index?
 
     @classmethod
     def get_name(cls):
@@ -57,7 +55,7 @@ class Index:
         values = []
         for key in cls.keys:
             values.append(value[key])
-        return ":".join(values)
+        return ":".join(str(value) for value in values)
 
     @classmethod
     def before_create(cls, ctx: PipelineContext):
@@ -70,7 +68,7 @@ class Index:
     def after_create(cls, ctx: PipelineContext):
         """Creates index based on pipeline context and creation result.
 
-        :param ctx: Pipeline context.
+        :param ctx: PipelineManager context.
         :return:
         """
 
@@ -83,7 +81,7 @@ class Index:
     def before_delete(cls, ctx: PipelineContext):
         """Saves cache name for future use in pipeline.
 
-        :param ctx: Pipeline context.
+        :param ctx: PipelineManager context.
         """
 
         (key,) = ctx.args
@@ -98,7 +96,7 @@ class Index:
     def after_delete(cls, ctx: PipelineContext):
         """Deletes index based on pipeline context.
 
-        :param dict ctx: Pipeline context.
+        :param dict ctx: PipelineManager context.
         """
 
         index_data = set(cls.get(ctx.name))
@@ -116,7 +114,7 @@ class Index:
     def after_update(cls, ctx: PipelineContext):
         """Updates index based on pipeline context.
 
-        :param dict ctx: Pipeline context.
+        :param dict ctx: PipelineManager context.
         """
 
         value = ctx.local_data["original_value"]
@@ -154,14 +152,14 @@ class Index:
         return [dict(zip(cls.keys, value.split(":"))) for value in index_data]
 
     @classmethod
-    @Cache.PIPELINE_INDEX_GET
+    @Cache.PIPELINE.index_get
     def get(cls, cache_name):
         return Cache.GET_METHOD(
             Cache, cache_name, cls.get_name(), default=collections.UserList()
         )
 
     @classmethod
-    @Cache.PIPELINE_INDEX_SET
+    @Cache.PIPELINE.index_set
     def set(cls, cache_name, value):
         return Cache.SET_METHOD(Cache, cache_name, cls.get_name(), value)
 
