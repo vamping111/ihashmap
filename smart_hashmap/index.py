@@ -25,7 +25,7 @@ class Index:
     ]
 
     def __init_subclass__(cls, **kwargs):
-        if hasattr(cls, "cache_name"):
+        if cls.cache_name is not None:
             cls.__INDEXES__.setdefault(cls.cache_name, []).append(cls)
         else:
             cls.__INDEXES__.setdefault("__global__", []).append(cls)
