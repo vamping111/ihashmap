@@ -98,7 +98,7 @@ class Pipeline:
             if isinstance(cls_or_self, Cache):
                 pipeline = getattr(cls_or_self.PIPELINE, self.name)
             elif isinstance(cls_or_self, Index):
-                pipeline = getattr(Cache.PIPELINE. self.name)
+                pipeline = getattr(Cache.PIPELINE, self.name)
             ctx = PipelineContext(f, cls_or_self, name, *args, **kwargs)
             return pipeline.wrap_action(ctx)
 
