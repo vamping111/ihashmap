@@ -7,21 +7,21 @@ from smart_hashmap.cache import Cache, PipelineContext
 class Index:
     """Sub-mapping representation that is stored separately for quick search."""
 
-    cache_name: str
+    cache_name: str = None
     keys: typing.List[str]
 
     __INDEXES__ = {}
     """Storage for all existing indexes."""
 
     HOOKS = [
-        ("before_create", Cache.PIPELINE.set.before()),
-        ("after_create", Cache.PIPELINE.set.after()),
-        ("before_get", Cache.PIPELINE.get.before()),
-        ("after_get", Cache.PIPELINE.get.after()),
-        ("before_update", Cache.PIPELINE.update.before()),
-        ("after_update", Cache.PIPELINE.update.after()),
-        ("before_delete", Cache.PIPELINE.delete.before()),
-        ("after_delete", Cache.PIPELINE.delete.after()),
+        ("before_create", Cache.PIPELINE.set.before),
+        ("after_create", Cache.PIPELINE.set.after),
+        ("before_get", Cache.PIPELINE.get.before),
+        ("after_get", Cache.PIPELINE.get.after),
+        ("before_update", Cache.PIPELINE.update.before),
+        ("after_update", Cache.PIPELINE.update.after),
+        ("before_delete", Cache.PIPELINE.delete.before),
+        ("after_delete", Cache.PIPELINE.delete.after),
     ]
 
     def __init_subclass__(cls, **kwargs):
@@ -33,7 +33,7 @@ class Index:
         for hook, pipe_wrapper in cls.HOOKS:
             if hasattr(cls, hook):
                 hook_action = getattr(cls, hook)
-                setattr(cls, hook, pipe_wrapper(hook_action))
+                setattr(cls, hook, pipe_wrapper(cache_name=cls.cache_name)(hook_action))
 
         # TODO: rebuild index?
 

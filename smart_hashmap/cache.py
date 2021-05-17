@@ -50,16 +50,16 @@ class Pipeline:
         pipe.sort(key=lambda action: action.priority)
         return pipe
 
-    def before(self, priority=1):
+    def before(self, priority=1, cache_name=None):
         def wrapper(f):
-            self._pipe_before.append(Action(f, priority))
+            self._pipe_before.append(Action(f, priority, cache_name=cache_name))
             return f
 
         return wrapper
 
-    def after(self, priority=1):
+    def after(self, priority=1, cache_name=None):
         def wrapper(f):
-            self._pipe_after.append(Action(f, priority))
+            self._pipe_after.append(Action(f, priority, cache_name=cache_name))
             return f
 
         return wrapper
@@ -68,13 +68,15 @@ class Pipeline:
         """Executes all actions in parents _pipe_before and this pipes."""
 
         for action in self.pipe_before:
-            action(ctx)
+            if action.cache_name in [None, ctx.name]:
+                action(ctx)
 
     def wrap_after(self, ctx: PipelineContext):
         """Executes all actions in parents _pipe_after and this pipes."""
 
         for action in self.pipe_after:
-            action(ctx)
+            if action.cache_name in [None, ctx.name]:
+                action(ctx)
 
     def wrap_action(self, ctx: PipelineContext):
         self.wrap_before(ctx)

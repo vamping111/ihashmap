@@ -48,18 +48,13 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
     Cache.register_update_method(fake_update)
     Cache.register_delete_method(fake_delete)
 
-    @Cache.PIPELINE.set.before()
-    @Cache.PIPELINE.index_set.before()
-    def test(ctx):
-        print(ctx.__dict__)
-
     class IndexByModel(Index):
         keys = ["_id", "model"]
         cache_name = "test"
 
     cache = Cache()
 
-    entity = collections.UserDict({"_id": "1234", "model": 1})
+    entity = collections.UserDict({"_id": "1234", "model": 1, "release": "1.0"})
     cache.set("test", "1234", entity)
     assert cache.get("test", "1234") == entity
     assert cache.all("test") == [
@@ -93,3 +88,5 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
     assert mocked_func.call_count == 1
 
     cache.set("test", "3456", {"_id": "3456", "model": 2})
+
+    print(cache.search("test", {"release": "1.0"}))
