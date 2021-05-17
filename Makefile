@@ -3,6 +3,7 @@ all: build install
 lint:
 	black --check .
 	isort --check .
+	flake8 .
 
 format:
 	black .

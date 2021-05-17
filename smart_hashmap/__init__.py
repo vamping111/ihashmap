@@ -1,1 +1,1 @@
-from . import cache, index
+from . import cache, index  # noqa: F401

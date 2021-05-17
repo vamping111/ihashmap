@@ -141,10 +141,10 @@ class Cache:
     PRIMARY_KEY = "_id"
     """Values primary key existing in all values."""
 
-    GET_METHOD = lambda cache, name, key, default=None: None
-    SET_METHOD = lambda cache, name, key, value: None
-    UPDATE_METHOD = lambda cache, name, key, value: None
-    DELETE_METHOD = lambda cache, name, key: None
+    GET_METHOD = lambda cache, name, key, default=None: None  # noqa: E731
+    SET_METHOD = lambda cache, name, key, value: None  # noqa: E731
+    UPDATE_METHOD = lambda cache, name, key, value: None  # noqa: E731
+    DELETE_METHOD = lambda cache, name, key: None  # noqa: E731
     """METHODS placeholders. You should register yours."""
 
     @PIPELINE.set
