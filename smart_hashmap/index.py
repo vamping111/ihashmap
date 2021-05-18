@@ -75,6 +75,7 @@ class Index:
         value = ctx.local_data["original_value"]
         index_data = set(cls.get(ctx.name))
         index_data.add(cls.get_index(value))
+        index_data = collections.UserList(index_data)
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -103,6 +104,7 @@ class Index:
 
         index_data = set(cls.get(ctx.name))
         index_data.remove(ctx.local_data["before_delete"][cls.__name__]["keys"])
+        index_data = collections.UserList(index_data)
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -127,6 +129,7 @@ class Index:
             except ValueError:
                 pass
             index_data.add(cls.get_index(ctx.result))
+            index_data = collections.UserList(index_data)
             cls.set(ctx.name, index_data)
 
     @classmethod
@@ -162,9 +165,9 @@ class Index:
 
     @classmethod
     @Cache.PIPELINE.index_set
-    def set(cls, cache_name, value: set):
+    def set(cls, cache_name, value: collections.UserList):
         return Cache.SET_METHOD(
-            Cache, cache_name, cls.get_name(), collections.UserList(value)
+            Cache, cache_name, cls.get_name(), value
         )
 
 
