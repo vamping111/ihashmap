@@ -166,9 +166,7 @@ class Index:
     @classmethod
     @Cache.PIPELINE.index_set
     def set(cls, cache_name, value: collections.UserList):
-        return Cache.SET_METHOD(
-            Cache, cache_name, cls.get_name(), value
-        )
+        return Cache.SET_METHOD(Cache, cache_name, cls.get_name(), value)
 
 
 class PkIndex(Index):
