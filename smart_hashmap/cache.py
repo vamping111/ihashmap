@@ -260,7 +260,7 @@ class Cache:
                 if search_value(value.get(search_key)):
                     match[search_key] = True
             else:
-                if value.get(search_key) == search_value:
+                if value.get(search_key) == str(search_value):
                     match[search_key] = True
         if all(match.values()):
             matched.append(value)
@@ -296,9 +296,7 @@ class Cache:
         index_data = best_index.get_values(index_data)
         matched = []
         subquery = {
-            key: str(value)
-            for key, value in search_query.items()
-            if key in best_index.keys
+            key: value for key, value in search_query.items() if key in best_index.keys
         }
         rest_query = {
             key: value

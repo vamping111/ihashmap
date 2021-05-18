@@ -82,10 +82,12 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
 
     assert mocked_func.called
     assert mocked_func.call_count == 1
-    print(cache.get("test", "1234"))
 
+    cache.get("test", "1234")
     assert mocked_func.call_count == 1
 
-    cache.set("test", "3456", collections.UserDict({"_id": "3456", "model": 2}))
-    cache.delete("test", "3456")
-    print(fake_cache)
+    entity2 = collections.UserDict({"_id": "3456", "model": 2})
+    cache.set("test", "3456", entity2)
+    assert cache.search("test", {"model": lambda model: model in ["2", "3"]}) == [
+        entity2,
+    ]
