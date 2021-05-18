@@ -1,6 +1,5 @@
 import collections
 import typing
-import re
 
 from smart_hashmap.cache import Cache, PipelineContext
 
@@ -90,8 +89,10 @@ class Index:
         value = cache.get(ctx.name, key)
         keys = []
         for index_key in cls.keys:
-            keys.append(value.__shadow_copy__[index_key])
-        ctx.local_data["before_delete"] = {"keys": ":".join(keys)}
+            keys.append(str(value.__shadow_copy__[index_key]))
+        ctx.local_data.setdefault("before_delete", {})[cls.__name__] = {
+            "keys": ":".join(keys)
+        }
 
     @classmethod
     def after_delete(cls, ctx: PipelineContext):
@@ -101,8 +102,8 @@ class Index:
         """
 
         index_data = set(cls.get(ctx.name))
-        index_data.remove(ctx.local_data["before_delete"]["keys"])
-        ctx.cls_or_self.SET_METHOD(ctx.name, cls.get_name(), index_data)
+        index_data.remove(ctx.local_data["before_delete"][cls.__name__]["keys"])
+        cls.set(ctx.name, index_data)
 
     @classmethod
     def before_update(cls, ctx: PipelineContext):
@@ -161,8 +162,10 @@ class Index:
 
     @classmethod
     @Cache.PIPELINE.index_set
-    def set(cls, cache_name, value):
-        return Cache.SET_METHOD(Cache, cache_name, cls.get_name(), value)
+    def set(cls, cache_name, value: set):
+        return Cache.SET_METHOD(
+            Cache, cache_name, cls.get_name(), collections.UserList(value)
+        )
 
 
 class PkIndex(Index):

@@ -62,7 +62,7 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
     ]
 
     assert fake_cache == {
-        "test": {"1234": entity, "index:_id": {"1234"}, "index:_id_model": {"1234:1"}}
+        "test": {"1234": entity, "index:_id": ["1234"], "index:_id_model": ["1234:1"]}
     }
 
     assert cache.search("test", {"model": 1}) == [
@@ -82,11 +82,10 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
 
     assert mocked_func.called
     assert mocked_func.call_count == 1
-
-    cache.get("test", "test")
+    print(cache.get("test", "1234"))
 
     assert mocked_func.call_count == 1
 
-    cache.set("test", "3456", {"_id": "3456", "model": 2})
-
-    print(cache.search("test", {"release": "1.0"}))
+    cache.set("test", "3456", collections.UserDict({"_id": "3456", "model": 2}))
+    cache.delete("test", "3456")
+    print(fake_cache)

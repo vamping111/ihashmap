@@ -339,3 +339,11 @@ class Cache:
 
     def __init_subclass__(cls, **kwargs):
         cls.PIPELINE = PipelineManager(parent_manager=cls.PIPELINE)
+
+
+@Cache.PIPELINE.get.after()
+def add_shadow_copy(ctx: PipelineContext):
+    """Add .__shadow_copy__ attribute for future use in pipelines."""
+
+    if ctx.result is not None:
+        ctx.result.__shadow_copy__ = ctx.result
