@@ -5,7 +5,7 @@ import setuptools
 module_info = {
     "name": "smart_hashmap",
     "version": "1.0.2",
-    "description": "",
+    "description": "Wrapper for hash map based storage systems",
     "author": "Yury Sokov aka. Yurzs",
     "author_email": "yurzs+smart_hashmap@icloud.com",
     "packages": setuptools.find_packages(exclude=("tests", "tests.*", "*.tests")),
@@ -22,7 +22,7 @@ module_info = {
     ],
 }
 
-with open("README.md") as long_description_file:
+with open("README.rst") as long_description_file:
     module_info["long_description"] = long_description_file.read()
 
 setuptools.setup(**module_info)
