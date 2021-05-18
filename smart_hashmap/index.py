@@ -1,5 +1,6 @@
 import collections
 import typing
+import re
 
 from smart_hashmap.cache import Cache, PipelineContext
 
@@ -88,8 +89,8 @@ class Index:
         cache = ctx.cls_or_self
         value = cache.get(ctx.name, key)
         keys = []
-        for key in cls.keys:
-            keys.append(value.__shadow_copy__[key])
+        for index_key in cls.keys:
+            keys.append(value.__shadow_copy__[index_key])
         ctx.local_data["before_delete"] = {"keys": ":".join(keys)}
 
     @classmethod

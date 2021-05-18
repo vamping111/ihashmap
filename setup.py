@@ -4,7 +4,7 @@ import setuptools
 
 module_info = {
     "name": "smart_hashmap",
-    "version": "0.1.4",
+    "version": "1.0.0",
     "description": "",
     "author": "Yury Sokov aka. Yurzs",
     "author_email": "yurzs+smart_hashmap@icloud.com",
