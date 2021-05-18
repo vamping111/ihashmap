@@ -87,7 +87,7 @@ class Index:
 
         (key,) = ctx.args
         cache = ctx.cls_or_self
-        value = cache.get(ctx.name, key)
+        value = cache._get(ctx.name, key)
         keys = []
         for index_key in cls.keys:
             keys.append(str(value.__shadow_copy__[index_key]))
