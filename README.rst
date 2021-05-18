@@ -1,9 +1,12 @@
 Smart Hashmap
 =============
 
-[![Lint and test](https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml/badge.svg)](https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml)
+.. image:: https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml/badge.svg
+    :alt: Lint and Test
+    :target: https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml
 
-![Smart Hashmap](https://raw.github.com/yurzs/smart_hashmap/master/assets/hashmap-logo.svg)
+.. image:: https://raw.github.com/yurzs/smart_hashmap/master/assets/hashmap-logo.svg
+    :alt: Smart Hashmap logo
 
 Wrapper for key-value based storage systems. Provides convenient way to organize data for quick searching.
 
