@@ -11,7 +11,7 @@ module_info = {
     "packages": setuptools.find_packages(exclude=("tests", "tests.*", "*.tests")),
     "license": "MIT",
     "keywords": ["cache", "indexes"],
-    "url": "https://git.yurzs.dev/yurzs/smart_hashmap",
+    "url": "https://github.com/yurzs/smart_hashmap",
     "classifiers": [
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
