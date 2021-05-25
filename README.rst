@@ -1,3 +1,9 @@
+.. role:: bash(code)
+   :language: bash
+ 
+ .. role:: python3(code)
+   :language: python3
+
 Smart Hashmap
 =============
 
@@ -14,10 +20,10 @@ Installation
 ------------
 
 1. Using pip:  
-`pip install smart_hashmap`
+:bash:`pip install smart_hashmap`
    
 2. Building from source:  
-`make install`
+:bash:`make install`
    
 How to use
 ----------
@@ -44,19 +50,20 @@ NOTE: Methods signature MUST match their placeholders signature
     """METHODS placeholders. You should register yours."""
 
 
-Now you are all set up to use `Cache.search`
+Now you are all set up to use :python3:`Cache.search`
 
 How it works
 ------------
 
-In default setup `Cache` creates and maintains indexes based on `Cache.primary_key`.  
-So every object save in cache MUST have such key. (By default its `_id`)
+In default setup :python3:`Cache` creates and maintains indexes based on :python3:`Cache.primary_key`.  
 
-On every called action for example `Cache.update` 
-Cache looks in pipeline `Cache.PIPELINE.update` for middlewares to run before and after main function execution.
+So every object save in cache MUST have such key. (By default its :python3:`_id`)
+
+On every called action for example :python3:`Cache.update` 
+Cache looks in pipeline :python3:`Cache.PIPELINE.update` for middlewares to run before and after main function execution.
 For example in current situation after `.update` function execution indexing middleware will
 check if documents fields matching its keys were changed.  
-If so it will get index data, look for old values in `value.__shadow_copy__` 
+If so it will get index data, look for old values in :python3:`value.__shadow_copy__` 
 remove such index data and create new record with updated values.
 
 Adding middlewares
@@ -75,7 +82,7 @@ Adding new action is easy:
         value["my_field"] = 1
 
 
-Now every cache value saved with `Cache.set` will be added `'my_field'` 
+Now every cache value saved with :python3:`Cache.set` will be added :python3:`'my_field'` 
 before main function execution.
 
 Custom Indexes
@@ -91,8 +98,9 @@ To create custom index you need to simply create new subclass of Index.
         keys = ["_id", "model"]
 
 
-NOTE: After that all values MUST have fields `_id` AND `model`  
-NOTE: Primary key MUST ALWAYS be in `keys`
+NOTE: After that all values MUST have fields :python3:`_id` AND :python3:`model`  
+
+NOTE: Primary key MUST ALWAYS be in :python3:`keys`
 
 Searching 
 ---------
@@ -110,6 +118,6 @@ After all required indexes created - searching will be as quick as possible.
     cache = Cache()
     cache.search("my_cache", {"model": "1.0"})
 
-When `.search` is called it will firstly check for indexes containing search fields.  
+When :python3:`.search` is called it will firstly check for indexes containing search fields.  
 After finding best index, it will get index data and find matching primary keys.
 Now searching is as easy as getting values by their key.
