@@ -1,7 +1,7 @@
 .. role:: bash(code)
    :language: bash
  
- .. role:: python3(code)
+.. role:: python3(code)
    :language: python3
 
 Smart Hashmap
