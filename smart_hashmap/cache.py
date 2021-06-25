@@ -1,4 +1,5 @@
 import collections
+import copy
 import functools
 import types
 import typing
@@ -340,8 +341,17 @@ class Cache:
 
 
 @Cache.PIPELINE.get.after()
+@Cache.PIPELINE.set.after()
+@Cache.PIPELINE.update.after()
 def add_shadow_copy(ctx: PipelineContext):
     """Add .__shadow_copy__ attribute for future use in pipelines."""
 
     if ctx.result is not None:
         ctx.result.__shadow_copy__ = ctx.result
+    elif "original_value" in ctx.local_data:
+        value = ctx.local_data["original_value"]
+        try:
+            delattr(value, "__shadow_copy__")
+        except AttributeError:
+            pass
+        value.__shadow_copy__ = copy.copy(value)
