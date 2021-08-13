@@ -1,7 +1,7 @@
 import collections
 import typing
 
-from smart_hashmap.cache import Cache, PipelineContext
+from ihashmap.cache import Cache, PipelineContext
 
 
 class Index:

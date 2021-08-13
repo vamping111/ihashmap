@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from smart_hashmap.cache import Cache
-from smart_hashmap.index import Index
+from ihashmap.cache import Cache
+from ihashmap.index import Index
 
 
 @pytest.fixture

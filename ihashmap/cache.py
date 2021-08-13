@@ -4,7 +4,7 @@ import functools
 import types
 import typing
 
-from smart_hashmap.action import Action
+from ihashmap.action import Action
 
 
 class PipelineContext:
@@ -95,7 +95,7 @@ class Pipeline:
 
         @functools.wraps(f)
         def wrap(cls_or_self, name, *args, **kwargs):
-            from smart_hashmap.index import Index
+            from ihashmap.index import Index
 
             pipeline = self
             if isinstance(cls_or_self, Cache):
@@ -283,7 +283,7 @@ class Cache:
         :return: list of matching values.
         """
 
-        from smart_hashmap.index import Index
+        from ihashmap.index import Index
 
         index_match = []
         indexes = Index.find_index_for_cache(name)
