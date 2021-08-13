@@ -9,7 +9,7 @@ with open(".version") as version_file:
 
 module_info = {
     "name": "ihashmap",
-    "version": version,
+    "version": "1.0.5",
     "description": "Wrapper for hash map based storage systems",
     "author": "Yury Sokov aka. Yurzs",
     "author_email": "yurzs+ihashmap@icloud.com",
