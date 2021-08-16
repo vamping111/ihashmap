@@ -1,17 +1,21 @@
 %define package_version %(sed '' .version)
+%global dist_raw %(%{__grep} -oP "release \\K[0-9]+\\.[0-9]+" /etc/system-release | tr -d ".")
+%define pkgname ihashmap
+%define buildid @BUILDID@
 
-Name:           ihashmap
+Name:           python-%{pkgname}
 Version:        %package_version
 Release:        1%{dist}
 Summary:        Indexed hashmap wrapper in Python
 
 Group:          Libraries
 License:        MIT
-Source:         %{name}-%{version}.tar.gz
+Source:         %{pkgname}-%{version}.tar.gz
 
 BuildArch:      noarch
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:  python3-devel
+BuildRequires:  python%{python3_pkgversion}-devel python%{python3_pkgversion}-setuptools
+
+Provides:       python-%{pkgname}
 
 %description
 Automaticly indexed hashmap for quick search and wrapper for things that don't expose .keys method
@@ -19,13 +23,15 @@ Automaticly indexed hashmap for quick search and wrapper for things that don't e
 %prep
 %setup -q
 
+%build
+%{py3_build}
+
 %install
-export PYTHONPATH="%{buildroot}%{python3_sitelib}"
-python3 setup.py install --root="%{buildroot}" --single-version-externally-managed
+%{py3_install}
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %buildroot
 
 %files
-%{python3_sitelib}/%{name}/
-%{python3_sitelib}/%{name}-%{version}-py%{python3_version}.egg-info/
+%{python3_sitelib}/%{pkgname}/
+%{python3_sitelib}/%{pkgname}-%{version}-py%{python3_version}.egg-info/
