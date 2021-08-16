@@ -10,7 +10,7 @@ Summary:        Indexed hashmap wrapper in Python
 
 Group:          Libraries
 License:        MIT
-Source:         %{pkgname}-%{version}.tar.gz
+Source:         %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python%{python3_pkgversion}-devel python%{python3_pkgversion}-setuptools
