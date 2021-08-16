@@ -1,4 +1,4 @@
-%define package_version %(sed '' .version)
+%define package_version 1.0.5
 %global dist_raw %(%{__grep} -oP "release \\K[0-9]+\\.[0-9]+" /etc/system-release | tr -d ".")
 %define pkgname ihashmap
 %define buildid @BUILDID@
