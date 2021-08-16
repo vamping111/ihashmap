@@ -1,6 +1,6 @@
 all: build install
 
-.PHONY: all test build install
+.PHONY: all test build install lint format
 
 NAME = ihashmap
 VERSION_FILE = .version
