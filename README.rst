@@ -4,14 +4,14 @@
 .. role:: python3(code)
    :language: python3
 
-Smart Hashmap
+iHashmap
 =============
 
-.. image:: https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml/badge.svg
+.. image:: https://github.com/Yurzs/ihashmap/actions/workflows/python-on-pull-request.yml/badge.svg
     :alt: Lint and Test
-    :target: https://github.com/Yurzs/smart_hashmap/actions/workflows/python-on-pull-request.yml
+    :target: https://github.com/Yurzs/ihashmap/actions/workflows/python-on-pull-request.yml
 
-.. image:: https://raw.github.com/yurzs/smart_hashmap/master/assets/hashmap-logo.svg
+.. image:: https://raw.github.com/yurzs/ihashmap/master/assets/hashmap-logo.svg
     :alt: Smart Hashmap logo
 
 Wrapper for key-value based storage systems. Provides convenient way to organize data for quick searching.
@@ -20,7 +20,7 @@ Installation
 ------------
 
 1. Using pip:  
-:bash:`pip install smart_hashmap`
+:bash:`pip install ihashmap`
    
 2. Building from source:  
 :bash:`make install`
@@ -32,7 +32,7 @@ Firstly you need to register methods:
 
 .. code-block:: python3
 
-    from smart_hashmap.cache import Cache
+    from ihashmap.cache import Cache
 
     Cache.register_get_method(YOUR_GET_METHOD)
     Cache.register_set_method(YOUR_SET_METHOD)
@@ -73,7 +73,7 @@ Adding new action is easy:
 
 .. code-block:: python3
 
-    from smart_hashmap.cache import Cache, PipelineContext
+    from ihashmap.cache import Cache, PipelineContext
 
     @Cache.PIPELINE.set.before()
     def add_my_field(ctx: PipelineContext):
@@ -92,7 +92,7 @@ To create custom index you need to simply create new subclass of Index.
 
 .. code-block:: python3
 
-    from smart_hashmap.index import Index
+    from ihashmap.index import Index
 
     class IndexByModel(Index):
         keys = ["_id", "model"]
@@ -109,8 +109,8 @@ After all required indexes created - searching will be as quick as possible.
 
 .. code-block:: python3
 
-    from smart_hashmap.cache import Cache
-    from smart_hashmap.index import Index
+    from ihashmap.cache import Cache
+    from ihashmap.index import Index
 
     class IndexByModel(Index):
         keys = ["_id", "model"]
