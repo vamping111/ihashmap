@@ -1,10 +1,11 @@
 import collections
 from unittest.mock import MagicMock
 
+import bson
 import pytest
 
 from ihashmap.cache import Cache
-from ihashmap.index import Index
+from ihashmap.index import Index, IndexContainer
 
 
 @pytest.fixture
@@ -91,3 +92,25 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
     assert cache.search("test", {"model": lambda model: model in ["2", "3"]}) == [
         entity2,
     ]
+
+
+def test_IndexContainer_append():
+
+    container = IndexContainer()
+    container.append(5)
+
+    assert container == [5]
+    container.append(4)
+    assert container == [4, 5]
+
+    container = IndexContainer()
+
+    id1 = bson.ObjectId()
+    id2 = bson.ObjectId()
+
+    container.append(id2)
+
+    assert container == [id2]
+
+    container.append(id1)
+    assert container == [id1, id2]

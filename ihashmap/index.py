@@ -1,7 +1,16 @@
+import bisect
 import collections
 import typing
 
 from ihashmap.cache import Cache, PipelineContext
+
+
+class IndexContainer(collections.UserList):
+    def append(self, item) -> None:
+        bisect.insort(self.data, item)
+
+    def insert(self, i: int, item) -> None:
+        bisect.insort(self.data, item)
 
 
 class Index:
@@ -75,7 +84,7 @@ class Index:
         value = ctx.local_data["original_value"]
         index_data = set(cls.get(ctx.name))
         index_data.add(cls.get_index(value))
-        index_data = collections.UserList(index_data)
+        index_data = IndexContainer(index_data)
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -104,7 +113,7 @@ class Index:
 
         index_data = set(cls.get(ctx.name))
         index_data.remove(ctx.local_data["before_delete"][cls.__name__]["keys"])
-        index_data = collections.UserList(index_data)
+        index_data = IndexContainer(index_data)
         cls.set(ctx.name, index_data)
 
     @classmethod
@@ -129,7 +138,7 @@ class Index:
             except ValueError:
                 pass
             index_data.add(cls.get_index(ctx.result))
-            index_data = collections.UserList(index_data)
+            index_data = IndexContainer(index_data)
             cls.set(ctx.name, index_data)
 
     @classmethod
@@ -160,12 +169,12 @@ class Index:
     @Cache.PIPELINE.index_get
     def get(cls, cache_name):
         return Cache.GET_METHOD(
-            Cache, cache_name, cls.get_name(), default=collections.UserList()
+            Cache, cache_name, cls.get_name(), default=IndexContainer()
         )
 
     @classmethod
     @Cache.PIPELINE.index_set
-    def set(cls, cache_name, value: collections.UserList):
+    def set(cls, cache_name, value: IndexContainer):
         return Cache.SET_METHOD(Cache, cache_name, cls.get_name(), value)
 
 

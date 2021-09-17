@@ -47,5 +47,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install flake8 pytest black isort
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f test-requirements.txt ]; then pip install -r test-requirements.txt; fi
       - name: Tests
         run: make test
