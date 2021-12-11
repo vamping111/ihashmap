@@ -246,7 +246,7 @@ class Cache:
         cls.DELETE_METHOD = method
 
     @classmethod
-    def _match_query(cls, value: dict, query: dict):
+    def _match_query(cls, value: dict, query: dict, is_index=False):
         """Matches query to mapping values.
 
         :param value: value to match against pattern
@@ -261,7 +261,9 @@ class Cache:
                 if search_value(value.get(search_key)):
                     match[search_key] = True
             else:
-                if value.get(search_key) == str(search_value):
+                if is_index:
+                    search_value = str(search_value)
+                if value.get(search_key) == search_value:
                     match[search_key] = True
         if all(match.values()):
             matched.append(value)
@@ -305,7 +307,7 @@ class Cache:
             if key not in best_index.keys
         }
         for value in index_data:
-            matched += self._match_query(value, subquery)
+            matched += self._match_query(value, subquery, is_index=True)
         result = []
         for value in matched:
             entity = self._get(name, value[self.PRIMARY_KEY])

@@ -89,7 +89,7 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
 
     entity2 = collections.UserDict({"_id": "3456", "model": 2})
     cache.set("test", "3456", entity2)
-    assert cache.search("test", {"model": lambda model: model in ["2", "3"]}) == [
+    assert cache.search("test", {"model": lambda model: int(model) in [2, 3]}) == [
         entity2,
     ]
 
