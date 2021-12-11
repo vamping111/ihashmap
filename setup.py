@@ -4,7 +4,7 @@ import setuptools
 
 module_info = {
     "name": "ihashmap",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Wrapper for hash map based storage systems",
     "author": "Yury Sokov aka. Yurzs",
     "author_email": "yurzs+ihashmap@icloud.com",
