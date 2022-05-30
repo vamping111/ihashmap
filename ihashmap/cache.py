@@ -201,9 +201,9 @@ class Cache:
         :return:
         """
 
-        index_name = f"index:{self.PRIMARY_KEY}"
+        from ihashmap.index import PkIndex
 
-        index_data = self._get(name, index_name, default=collections.UserList())
+        index_data = PkIndex.get(name)
         result = []
         for item_key in index_data:
             result.append(self._get(name, item_key))

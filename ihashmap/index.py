@@ -16,6 +16,7 @@ class IndexContainer(collections.UserList):
 class Index:
     """Sub-mapping representation that is stored separately for quick search."""
 
+    INDEX_CACHE_NAME: str = "indexes"
     cache_name: str = None
     keys: typing.List[str]
 
@@ -47,11 +48,11 @@ class Index:
         # TODO: rebuild index?
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls, cache_name):
         """Composes index name."""
 
         keys = "_".join(cls.keys)
-        return f"index:{keys}"
+        return f"{cache_name}:{keys}"
 
     @classmethod
     def get_index(cls, value: typing.Mapping) -> str:
@@ -169,13 +170,22 @@ class Index:
     @Cache.PIPELINE.index_get
     def get(cls, cache_name):
         return Cache.GET_METHOD(
-            Cache, cache_name, cls.get_name(), default=IndexContainer()
+            Cache,
+            cls.INDEX_CACHE_NAME,
+            cls.get_name(cache_name),
+            default=IndexContainer(),
         )
 
     @classmethod
     @Cache.PIPELINE.index_set
     def set(cls, cache_name, value: IndexContainer):
-        return Cache.SET_METHOD(Cache, cache_name, cls.get_name(), value)
+        return Cache.SET_METHOD(
+            Cache, cls.INDEX_CACHE_NAME, cls.get_name(cache_name), value
+        )
+
+    @classmethod
+    def set_index_cache_name(cls, index_cache_name: str):
+        cls.INDEX_CACHE_NAME = index_cache_name
 
 
 class PkIndex(Index):

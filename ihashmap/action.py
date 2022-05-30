@@ -7,4 +7,4 @@ class Action:
         self.cache_name = cache_name
 
     def __call__(self, *args, **kwargs):
-        return self.f(*args, *kwargs)
+        return self.f(*args, **kwargs)

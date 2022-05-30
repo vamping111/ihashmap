@@ -10,7 +10,7 @@ from ihashmap.index import Index, IndexContainer
 
 @pytest.fixture
 def fake_cache():
-    return {}
+    return {Index.INDEX_CACHE_NAME: {}}
 
 
 @pytest.fixture
@@ -63,7 +63,8 @@ def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
     ]
 
     assert fake_cache == {
-        "test": {"1234": entity, "index:_id": ["1234"], "index:_id_model": ["1234:1"]}
+        "test": {"1234": entity},
+        Index.INDEX_CACHE_NAME: {"test:_id": ["1234"], "test:_id_model": ["1234:1"]},
     }
 
     assert cache.search("test", {"model": 1}) == [
