@@ -5,7 +5,7 @@
 
 Name:           python-%{pkgname}
 Version:        %package_version
-Release:        1.CROC1%{dist}
+Release:        1.CROC2%{dist}
 Summary:        Indexed hashmap wrapper in Python
 Group:          Libraries
 License:        MIT
@@ -19,6 +19,7 @@ Automaticly indexed hashmap for quick search and wrapper for things that don't e
 Summary:        Indexed hashmap wrapper in Python
 BuildRequires:  python%{python3_pkgversion}-devel python%{python3_pkgversion}-setuptools
 Provides:       python-%{pkgname}
+Obsoletes:      python-ihashmap
 
 %description -n python%{python3_pkgversion}-%{pkgname}
 Automaticly indexed hashmap for quick search and wrapper for things that don't expose .keys method
