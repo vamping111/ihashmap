@@ -5,7 +5,7 @@
 
 Name:           python-%{pkgname}
 Version:        %package_version
-Release:        1.CROC2%{dist}
+Release:        1.ROCKIT3%{dist}
 Summary:        Indexed hashmap wrapper in Python
 Group:          Libraries
 License:        MIT
