@@ -1,4 +1,5 @@
 import collections
+import copy
 from unittest.mock import MagicMock
 
 import bson
@@ -43,12 +44,22 @@ def fake_delete(fake_cache):
     return _delete
 
 
-def test_Cache_simple(fake_cache, fake_get, fake_set, fake_update, fake_delete):
+@pytest.fixture(scope="function")
+def register_methods(fake_get, fake_set, fake_update, fake_delete):
     Cache.register_get_method(fake_get)
     Cache.register_set_method(fake_set)
     Cache.register_update_method(fake_update)
     Cache.register_delete_method(fake_delete)
 
+
+@pytest.fixture(autouse=True)
+def remove_indexes():
+    global_indexes = Index.__INDEXES__["__global__"]
+    Index.__INDEXES__.clear()
+    Index.__INDEXES__["__global__"] = global_indexes
+
+
+def test_Cache_simple(fake_cache, register_methods):
     class IndexByModel(Index):
         keys = ["_id", "model"]
         cache_name = "test"
@@ -115,3 +126,92 @@ def test_IndexContainer_append():
 
     container.append(id1)
     assert container == [id1, id2]
+
+
+def test_MultiIndex_search(register_methods, fake_cache, monkeypatch):
+    class IndexByModel(Index):
+        keys = ["_id", "model"]
+        cache_name = "test"
+
+    class IndexByRelease(Index):
+        keys = ["_id", "release"]
+        cache_name = "test"
+
+    class IndexByABC(Index):
+        keys = ["_id", "abc"]
+        cache_name = "test"
+
+    cache = Cache()
+
+    entity = collections.UserDict(
+        {
+            "_id": "1234",
+            "model": 1,
+            "release": "1.0",
+            "abc": 5,
+            "other": "value",
+            "other2": "value",
+        }
+    )
+    cache.set("test", entity["_id"], entity)
+
+    entity2 = collections.UserDict(
+        {
+            "_id": "12345",
+            "model": 1,
+            "release": "1.0",
+            "abc": 6,
+            "other": "value",
+            "other2": "value",
+        }
+    )
+    cache.set("test", entity2["_id"], entity2)
+
+    combine_result = []
+    real_combine = copy.deepcopy(Index.combine)
+
+    def fake_combine(cache_name, indexes):
+        result = real_combine(cache_name, indexes)
+        combine_result.append(result)
+        return result
+
+    monkeypatch.setattr(Index, "combine", fake_combine)
+
+    assert cache.search(
+        "test",
+        {
+            "model": 1,
+            "release": "1.0",
+            "abc": 5,
+            "other2": "value",
+        },
+    ) == [
+        entity,
+    ]
+
+    assert len(combine_result) == 1
+
+    index_data = list(combine_result[0][0])
+    index_keys = combine_result[0][1]
+
+    assert len(index_data) == 2
+
+    assert index_keys == {"_id", "model", "release", "abc"}
+    assert index_data == [
+        {"_id": "1234", "model": "1", "release": "1.0", "abc": "5"},
+        {"_id": "12345", "model": "1", "release": "1.0", "abc": "6"},
+    ]
+
+    assert cache.search("test", {"model": 1, "other2": "value",}) == [
+        entity,
+        entity2,
+    ]
+
+    assert len(combine_result) == 2
+    index_data = list(combine_result[1][0])
+    index_keys = combine_result[1][1]
+
+    assert len(index_data) == 2
+
+    assert index_keys == {"_id", "model"}
+    assert index_data == [{"_id": "1234", "model": "1"}, {"_id": "12345", "model": "1"}]

@@ -1,4 +1,3 @@
-import collections
 import copy
 import functools
 import types
@@ -289,25 +288,30 @@ class Cache:
 
         index_match = []
         indexes = Index.find_index_for_cache(name)
+
         for index in indexes:
             index_match.append(
                 len(set(index.keys).intersection(search_query)) / len(search_query)
             )
-        best_choice_index = index_match.index(max(index_match))
-        best_index = indexes[best_choice_index]
-        index_data = set(best_index.get(name))
-        index_data = best_index.get_values(index_data)
+
+        combined_index, combined_keys = Index.combine(
+            name, [index for index, match in zip(indexes, index_match) if match > 0]
+        )
+
         matched = []
+
         subquery = {
-            key: value for key, value in search_query.items() if key in best_index.keys
+            key: value for key, value in search_query.items() if key in combined_keys
         }
         rest_query = {
             key: value
             for key, value in search_query.items()
-            if key not in best_index.keys
+            if key not in combined_keys
         }
-        for value in index_data:
+
+        for value in combined_index:
             matched += self._match_query(value, subquery, is_index=True)
+
         result = []
         for value in matched:
             entity = self._get(name, value[self.PRIMARY_KEY])

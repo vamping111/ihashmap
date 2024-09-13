@@ -187,6 +187,28 @@ class Index:
     def set_index_cache_name(cls, index_cache_name: str):
         cls.INDEX_CACHE_NAME = index_cache_name
 
+    @classmethod
+    def combine(
+        cls, cache_name: str, indexes: typing.List["Index"]
+    ) -> (typing.List[typing.Dict[str, typing.Any]], set):
+        """Combines indexes into one."""
+
+        combined_index_data = {}
+        combined_index_keys = set()
+
+        for index in indexes:
+            for index_container in index.get_values(index.get(cache_name)):
+                index_data = {key: value for key, value in index_container.items()}
+
+                combined_index_data.setdefault(index_data["_id"], {}).update(index_data)
+
+            combined_index_keys.update(index.keys)
+
+        return (
+            sorted(combined_index_data.values(), key=lambda d: d["_id"]),
+            combined_index_keys,
+        )
+
 
 class PkIndex(Index):
     keys = ["_id"]
