@@ -303,11 +303,13 @@ class Cache:
 
             index_match.append(
                 matched_percentage
-                if len(index.get_keys()) == 1 or matched_keys - {self.PRIMARY_KEY}
+                if matched_keys - {self.PRIMARY_KEY} or index.get_keys() == [self.PRIMARY_KEY]
                 else 0
             )
 
-        hit_indexes = [index for index, match in zip(indexes, index_match) if match > 0]
+        hit_indexes = [index for index, match in zip(indexes, index_match) if match == 1]
+        if not hit_indexes:
+            hit_indexes = [index for index, match in zip(indexes, index_match) if match > 0]
 
         matched, combined_keys = Index.combine(
             name,
