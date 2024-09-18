@@ -1,9 +1,10 @@
-import json
 import threading
 from functools import partial
 from types import FunctionType
 from typing import (Any, Dict, List, Mapping, Optional, Set, Tuple, TypeVar,
                     Union)
+
+import msgpack
 
 from ihashmap.cache import Cache, PipelineContext
 from ihashmap.helpers import locked, match_query
@@ -90,7 +91,7 @@ class Index:
         :return: str: index in string format.
         """
 
-        return json.dumps(cls.cut_data(value), sort_keys=True)
+        return msgpack.dumps(cls.cut_data(value), use_bin_type=False)
 
     @classmethod
     def cut_data(cls, value: Mapping, exclude_none: bool = False) -> Dict[str, Any]:
@@ -254,12 +255,14 @@ class Index:
         for index in indexes:
             subquery = index.cut_data(query, exclude_none=True)
 
+            combined_index_keys.update(index.get_keys())
+
             func_search = any(
                 isinstance(value, FunctionType) for value in subquery.values()
             )
 
             if func_search or index.cut_data(query) != subquery:
-                index_data = [json.loads(d) for d in index.keys_(cache_name)]
+                index_data = [msgpack.loads(d, raw=False) for d in index.keys_(cache_name)]
 
                 for key, value in subquery.items():
                     filter_func = (

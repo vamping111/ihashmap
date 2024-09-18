@@ -309,7 +309,7 @@ class Cache:
 
         hit_indexes = [index for index, match in zip(indexes, index_match) if match > 0]
 
-        combined_index, combined_keys = Index.combine(
+        matched, combined_keys = Index.combine(
             name,
             hit_indexes,
             search_query,
@@ -321,8 +321,6 @@ class Cache:
             if key not in combined_keys
         }
 
-        matched = combined_index
-
         if not hit_indexes:
             LOG.warning(
                 "Complete index miss for %s query: %s. Query will be slow.",
@@ -332,6 +330,11 @@ class Cache:
 
             matched = [{self.PRIMARY_KEY: key} for key in self.protocol.keys(name)]
             rest_query = search_query
+
+        if not rest_query:
+            return [
+                self.protocol.get(name, value[self.PRIMARY_KEY]) for value in matched
+            ]
 
         result = []
         for value in matched:
