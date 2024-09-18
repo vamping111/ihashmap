@@ -1,11 +1,12 @@
 import functools
 import logging
+import threading
 from typing import Any, Callable, Generator, List, Mapping, Optional, Union
 
 from typing_extensions import Protocol, Self, final
 
 from ihashmap.action import Action
-from ihashmap.helpers import match_query
+from ihashmap.helpers import locked, match_query
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +32,9 @@ class CacheProtocol(Protocol):
         ...
 
     def keys(self, name: str) -> List[str]:
+        ...
+
+    def pop(self, name: str, key: str, default: Optional[Any] = None) -> Optional[str]:
         ...
 
 
@@ -175,6 +179,9 @@ class Cache:
     __INSTANCE__ = None
     """Singleton instance."""
 
+    LOCK = threading.RLock()
+    """Lock for thread-safe operations."""
+
     def __new__(cls, protocol: CacheProtocol) -> Self:
         """Singleton instance creation."""
 
@@ -196,6 +203,7 @@ class Cache:
         return cls.__INSTANCE__
 
     @PIPELINE.set
+    @locked
     def set(self, name: str, key: str, value: Mapping[str, Any]) -> None:
         """Wrapper for pipeline execution.
 
@@ -228,6 +236,7 @@ class Cache:
         return self.protocol.get(name, key, default)
 
     @PIPELINE.update
+    @locked
     def update(self, name: str, key: str, value: Mapping[str, Any]) -> None:
         """Wrapper for pipeline execution.
 
@@ -236,7 +245,10 @@ class Cache:
         :param dict value: stored value.
         """
 
-        if value.get(self.PRIMARY_KEY) is not None and value.get(self.PRIMARY_KEY) != key:
+        if (
+            value.get(self.PRIMARY_KEY) is not None
+            and value.get(self.PRIMARY_KEY) != key
+        ):
             raise ValueError(
                 f"Primary key mismatch: {value[self.PRIMARY_KEY]} != {key}"
             )
@@ -244,6 +256,7 @@ class Cache:
         return self.protocol.update(name, key, value)
 
     @PIPELINE.delete
+    @locked
     def delete(self, name: str, key: str) -> None:
         """Wrapper for pipeline execution.
 
@@ -253,6 +266,7 @@ class Cache:
 
         return self.protocol.delete(name, key)
 
+    @locked
     def all(self, name: str) -> Generator[Mapping[str, Any], None, None]:
         """Finds all values in cache.
 
@@ -264,6 +278,7 @@ class Cache:
             if value is not None:
                 yield value
 
+    @locked
     def search(
         self,
         name: str,
@@ -310,18 +325,22 @@ class Cache:
 
         if not hit_indexes:
             LOG.warning(
-                "Complete index miss for query: %s. Query will be slow.", search_query
+                "Complete index miss for %s query: %s. Query will be slow.",
+                name,
+                search_query,
             )
 
             matched = [{self.PRIMARY_KEY: key} for key in self.protocol.keys(name)]
+            rest_query = search_query
 
         result = []
         for value in matched:
             entity = self.protocol.get(name, value[self.PRIMARY_KEY])
-            result += match_query(entity, rest_query if hit_indexes else search_query)
+            result += match_query(entity, rest_query)
 
         return result
 
+    @locked
     def find_all(self, name: str) -> Generator[Union[Mapping, List[str]], None, None]:
         """Internal method to get all values from cache."""
 

@@ -2,10 +2,11 @@ import json
 import threading
 from functools import partial
 from types import FunctionType
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypeVar, Union
+from typing import (Any, Dict, List, Mapping, Optional, Set, Tuple, TypeVar,
+                    Union)
 
 from ihashmap.cache import Cache, PipelineContext
-from ihashmap.helpers import match_query
+from ihashmap.helpers import locked, match_query
 
 T = TypeVar("T")
 
@@ -60,7 +61,9 @@ class Index:
 
         result = []
         for key in cls.keys:
-            result.append(key if key != cls.PK_KEY_PLACEHOLDER else cls.cache().PRIMARY_KEY)
+            result.append(
+                key if key != cls.PK_KEY_PLACEHOLDER else cls.cache().PRIMARY_KEY
+            )
 
         return result
 
@@ -114,7 +117,7 @@ class Index:
         """Stores original value for after_create usage."""
 
         key, value = ctx.args
-        ctx.local_data["original_value"] = value
+        ctx.local_data["value"] = value
 
         if cls.unique:
             index_key = cls.get_key(value)
@@ -130,17 +133,7 @@ class Index:
         :return:
         """
 
-        value: Mapping = ctx.local_data["original_value"]
-
-        with cls.LOCK:
-            pk = value[cls.cache().PRIMARY_KEY]
-            key = cls.get_key(value)
-
-            index_value: Set[str] = set(cls.get(ctx.name, key, default=[]))
-            index_value.add(pk)
-
-            cls.set(ctx.name, cls.get_key(value), list(index_value))
-            cls.set(ctx.name, pk, key, reverse=True)
+        cls.append(ctx.name, ctx.local_data["value"])
 
     @classmethod
     def before_delete(cls, ctx: PipelineContext):
@@ -149,9 +142,7 @@ class Index:
         :param ctx: PipelineManager context.
         """
 
-        ctx.local_data["pk"] = cls.cache().protocol.get(
-            ctx.name, ctx.args[0][cls.cache().PRIMARY_KEY]
-        )
+        ctx.local_data["value"] = cls.cache().protocol.get(ctx.name, ctx.args[0])
 
     @classmethod
     def after_delete(cls, ctx: PipelineContext):
@@ -160,19 +151,15 @@ class Index:
         :param dict ctx: PipelineManager context.
         """
 
-        with cls.LOCK:
-            key = cls.get(ctx.name, ctx.local_data["pk"], reverse=True)
-
-            if key is not None:
-                cls.delete(ctx.name, key)
-                cls.delete(ctx.name, ctx.local_data["pk"], reverse=True)
+        if ctx.local_data["value"]:
+            cls.remove(ctx.name, ctx.local_data["value"])
 
     @classmethod
     def before_update(cls, ctx: PipelineContext):
         """Creates value copy for after_update usage."""
 
-        key, value = ctx.args
-        ctx.local_data["original_value"] = value
+        key, _ = ctx.args
+        ctx.local_data["value"] = cls.cache().protocol.get(ctx.name, key)
 
     @classmethod
     def after_update(cls, ctx: PipelineContext):
@@ -181,19 +168,8 @@ class Index:
         :param dict ctx: PipelineManager context.
         """
 
-        value = ctx.local_data["original_value"]
-
-        with cls.LOCK:
-            key = cls.get_key(value)
-            pk = value[cls.cache().PRIMARY_KEY]
-
-            index_key = cls.get(ctx.name, pk, reverse=True)
-            if index_key is not None:
-                cls.delete(ctx.name, index_key)
-                cls.delete(ctx.name, pk, reverse=True)
-
-            cls.set(ctx.name, key, pk)
-            cls.set(ctx.name, pk, key, reverse=True)
+        cls.remove(ctx.name, ctx.local_data["value"])
+        cls.append(ctx.name, ctx.args[1])
 
     @classmethod
     def find_index_for_cache(cls, cache_name: str) -> List["Index"]:
@@ -213,34 +189,53 @@ class Index:
         cls,
         cache_name: str,
         key: str,
-        reverse: bool = False,
         default: Optional[T] = None,
     ) -> Union[List[str], str, T]:
         return cls.cache().protocol.get(
-            cls.get_name(cache_name, reverse=reverse),
+            cls.get_name(cache_name),
             key,
             default=default,
         )
 
     @classmethod
-    def keys_(cls, cache_name: str, reverse: bool = False):
-        return cls.cache().protocol.keys(cls.get_name(cache_name, reverse=reverse))
+    def keys_(cls, cache_name: str):
+        return cls.cache().protocol.keys(cls.get_name(cache_name))
 
     @classmethod
     @Cache.PIPELINE.index_set
-    def set(
-        cls, cache_name, key: str, value: Union[List[str], str], reverse: bool = False
-    ) -> None:
-        return cls.cache().protocol.set(
-            cls.get_name(cache_name, reverse=reverse), key, value
+    @locked
+    def append(cls, cache_name, value: Mapping[str, Any]) -> None:
+        """Appends value to index."""
+
+        index_key = cls.get_key(value)
+        value_pk = value[cls.cache().PRIMARY_KEY]
+
+        current_value = set(cls.get(cache_name, index_key, default=[]))
+        current_value.add(value_pk)
+
+        cls.cache().protocol.set(cls.get_name(cache_name), index_key, list(current_value))
+        cls.cache().protocol.set(
+            cls.get_name(cache_name, reverse=True),
+            value_pk,
+            index_key,
         )
 
     @classmethod
     @Cache.PIPELINE.index_delete
-    def delete(cls, cache_name: str, key: str, reverse: bool = False) -> None:
-        return cls.cache().protocol.delete(
-            cls.get_name(cache_name, reverse=reverse), key
+    @locked
+    def remove(cls, cache_name: str, entity: Mapping[str, Any]) -> None:
+        """Removes value from index."""
+
+        entity_pk = entity[cls.cache().PRIMARY_KEY]
+
+        index_key = cls.cache().protocol.pop(
+            cls.get_name(cache_name, reverse=True),
+            entity_pk,
+            default=None,
         )
+
+        if index_key is not None:
+            cls.cache().protocol.delete(cls.get_name(cache_name), index_key)
 
     @classmethod
     def combine(
@@ -254,7 +249,7 @@ class Index:
         combined_index_keys = set()
         matches: List[Mapping[str, Any]] = []
 
-        cache_pk = cls.cache().PRIMARY_KEY
+        pk_key = cls.cache().PRIMARY_KEY
 
         for index in indexes:
             subquery = index.cut_data(query, exclude_none=True)
@@ -275,7 +270,7 @@ class Index:
                     index_data = filter(filter_func, index_data)
 
                 matches.extend(
-                    {cache_pk: pk, **index.cut_data(i)}
+                    {pk_key: pk, **index.cut_data(i)}
                     for i in index_data
                     for pk in index.get(cache_name, index.get_key(i), default=[])
                 )
@@ -283,13 +278,13 @@ class Index:
             else:
                 search_key = index.get_key(subquery)
                 matches.extend(
-                    {cache_pk: pk, **index.cut_data(subquery)}
+                    {pk_key: pk, **index.cut_data(subquery)}
                     for pk in index.get(cache_name, search_key, default=[])
                 )
 
         combined_index = {}
         for match in matches:
-            combined_index.setdefault(match[cache_pk], {}).update(match)
+            combined_index.setdefault(match[pk_key], {}).update(match)
 
         result = []
 
@@ -302,7 +297,7 @@ class Index:
                 result.append(doc)
 
         return (
-            sorted(result, key=lambda v: v[cache_pk]),
+            sorted(result, key=lambda v: v[pk_key]),
             combined_index_keys,
         )
 

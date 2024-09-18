@@ -1,3 +1,4 @@
+import functools
 from types import FunctionType
 from typing import Any, List, Mapping
 
@@ -27,3 +28,14 @@ def match_query(
         matched.append(value)
 
     return matched
+
+
+def locked(f):
+    """Decorator for thread-safe methods."""
+
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self.LOCK:
+            return f(self, *args, **kwargs)
+
+    return wrapper
