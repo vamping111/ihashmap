@@ -1,217 +1,134 @@
-import collections
-import copy
-from unittest.mock import MagicMock
-
-import bson
-import pytest
-
 from ihashmap.cache import Cache
-from ihashmap.index import Index, IndexContainer
+from ihashmap.index import Index
+from tests.conftest import DictCache
 
 
-@pytest.fixture
-def fake_cache():
-    return {Index.INDEX_CACHE_NAME: {}}
-
-
-@pytest.fixture
-def fake_get(fake_cache):
-    def _get(self, name, key, default=None):
-        return fake_cache[name].get(key, default)
-
-    return _get
-
-
-@pytest.fixture
-def fake_set(fake_cache):
-    def _set(self, name, key, value):
-        fake_cache.setdefault(name, {})[key] = value
-        return value
-
-    return _set
-
-
-@pytest.fixture
-def fake_update(fake_cache):
-    return fake_cache.update
-
-
-@pytest.fixture
-def fake_delete(fake_cache):
-    def _delete(self, name, key):
-        del fake_cache[name][key]
-
-    return _delete
-
-
-@pytest.fixture(scope="function")
-def register_methods(fake_get, fake_set, fake_update, fake_delete):
-    Cache.register_get_method(fake_get)
-    Cache.register_set_method(fake_set)
-    Cache.register_update_method(fake_update)
-    Cache.register_delete_method(fake_delete)
-
-
-@pytest.fixture(autouse=True)
-def remove_indexes():
-    global_indexes = Index.__INDEXES__["__global__"]
-    Index.__INDEXES__.clear()
-    Index.__INDEXES__["__global__"] = global_indexes
-
-
-def test_Cache_simple(fake_cache, register_methods):
+def test_Cache_find_all():
     class IndexByModel(Index):
         keys = ["_id", "model"]
         cache_name = "test"
 
-    cache = Cache()
+    cache = Cache(DictCache())
 
-    entity = collections.UserDict({"_id": "1234", "model": 1, "release": "1.0"})
-    cache.set("test", "1234", entity)
-    assert cache.get("test", "1234") == entity
-    assert cache.all("test") == [
-        entity,
-    ]
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+    entity3 = {"_id": "1254", "model": 2, "release": "2.0"}
 
-    assert fake_cache == {
-        "test": {"1234": entity},
-        Index.INDEX_CACHE_NAME: {"test:_id": ["1234"], "test:_id_model": ["1234:1"]},
-    }
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
+    cache.set("test", entity3["_id"], entity3)
 
-    assert cache.search("test", {"model": 1}) == [
-        entity,
-    ]
-
-    class Cache2(Cache):
-        pass
-
-    mocked_func = MagicMock()
-    Cache2.PIPELINE.get.before()(mocked_func)
-
-    cache2 = Cache2()
-    cache = Cache()
-
-    cache2.get("test", "test")
-
-    assert mocked_func.called
-    assert mocked_func.call_count == 1
-
-    cache.get("test", "1234")
-    assert mocked_func.call_count == 1
-
-    entity2 = collections.UserDict({"_id": "3456", "model": 2})
-    cache.set("test", "3456", entity2)
-    assert cache.search("test", {"model": lambda model: int(model) in [2, 3]}) == [
-        entity2,
-    ]
+    assert list(cache.find_all("test")) == [entity1, entity2, entity3]
 
 
-def test_IndexContainer_append():
+def test_Cache_search():
+    cache = Cache(DictCache())
 
-    container = IndexContainer()
-    container.append(5)
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+    entity3 = {"_id": "1254", "model": 2, "release": "2.0"}
 
-    assert container == [5]
-    container.append(4)
-    assert container == [4, 5]
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
+    cache.set("test", entity3["_id"], entity3)
 
-    container = IndexContainer()
-
-    id1 = bson.ObjectId()
-    id2 = bson.ObjectId()
-
-    container.append(id2)
-
-    assert container == [id2]
-
-    container.append(id1)
-    assert container == [id1, id2]
+    assert cache.search("test", {"model": 1}) == [entity1, entity2]
+    assert cache.search("test", {"model": 2}) == [entity3]
+    assert cache.search("test", {"release": "1.0"}) == [entity1, entity2]
+    assert cache.search("test", {"release": "2.0"}) == [entity3]
 
 
-def test_MultiIndex_search(register_methods, fake_cache, monkeypatch):
+def test_Cache_search_with_index():
     class IndexByModel(Index):
         keys = ["_id", "model"]
         cache_name = "test"
 
-    class IndexByRelease(Index):
-        keys = ["_id", "release"]
-        cache_name = "test"
+    cache = Cache(DictCache())
 
-    class IndexByABC(Index):
-        keys = ["_id", "abc"]
-        cache_name = "test"
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+    entity3 = {"_id": "1254", "model": 2, "release": "2.0"}
 
-    cache = Cache()
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
+    cache.set("test", entity3["_id"], entity3)
 
-    entity = collections.UserDict(
-        {
-            "_id": "1234",
-            "model": 1,
-            "release": "1.0",
-            "abc": 5,
-            "other": "value",
-            "other2": "value",
-        }
-    )
-    cache.set("test", entity["_id"], entity)
+    assert cache.search("test", {"model": 1}) == [entity1, entity2]
+    assert cache.search("test", {"model": 2}) == [entity3]
+    assert cache.search("test", {"release": "1.0"}) == [entity1, entity2]
+    assert cache.search("test", {"release": "2.0"}) == [entity3]
 
-    entity2 = collections.UserDict(
-        {
-            "_id": "12345",
-            "model": 1,
-            "release": "1.0",
-            "abc": 6,
-            "other": "value",
-            "other2": "value",
-        }
-    )
+
+def test_Cache_all():
+    cache = Cache(DictCache())
+
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+    entity3 = {"_id": "1254", "model": 2, "release": "2.0"}
+
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
+    cache.set("test", entity3["_id"], entity3)
+
+    assert list(cache.all("test")) == [entity1, entity2, entity3]
+
+
+def test_Cache_delete():
+
+    cache = Cache(DictCache())
+
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+    entity3 = {"_id": "1254", "model": 2, "release": "2.0"}
+
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
+    cache.set("test", entity3["_id"], entity3)
+
+    cache.delete("test", entity2["_id"])
+
+    assert cache.get("test", entity2["_id"]) is None
+    assert list(cache.all("test")) == [entity1, entity3]
+
+
+def test_Cache_update():
+    cache = Cache(DictCache())
+
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
+
+    cache.set("test", entity1["_id"], entity1)
     cache.set("test", entity2["_id"], entity2)
 
-    combine_result = []
-    real_combine = copy.deepcopy(Index.combine)
+    updated_entity1 = {"_id": "1234", "model": 1, "release": "2.0"}
+    cache.update("test", entity1["_id"], updated_entity1)
 
-    def fake_combine(cache_name, indexes):
-        result = real_combine(cache_name, indexes)
-        combine_result.append(result)
-        return result
+    assert cache.get("test", entity1["_id"]) == updated_entity1
+    assert cache.get("test", entity2["_id"]) == entity2
 
-    monkeypatch.setattr(Index, "combine", fake_combine)
 
-    assert cache.search(
-        "test",
-        {
-            "model": 1,
-            "release": "1.0",
-            "abc": 5,
-            "other2": "value",
-        },
-    ) == [
-        entity,
-    ]
+def test_Cache_get():
+    cache = Cache(DictCache())
 
-    assert len(combine_result) == 1
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
 
-    index_data = list(combine_result[0][0])
-    index_keys = combine_result[0][1]
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
 
-    assert len(index_data) == 2
+    assert cache.get("test", entity1["_id"]) == entity1
+    assert cache.get("test", entity2["_id"]) == entity2
+    assert cache.get("test", "nonexistent_id") is None
 
-    assert index_keys == {"_id", "model", "release", "abc"}
-    assert index_data == [
-        {"_id": "1234", "model": "1", "release": "1.0", "abc": "5"},
-        {"_id": "12345", "model": "1", "release": "1.0", "abc": "6"},
-    ]
 
-    assert cache.search("test", {"model": 1, "other2": "value",}) == [
-        entity,
-        entity2,
-    ]
+def test_Cache_set():
+    cache = Cache(DictCache())
 
-    assert len(combine_result) == 2
-    index_data = list(combine_result[1][0])
-    index_keys = combine_result[1][1]
+    entity1 = {"_id": "1234", "model": 1, "release": "1.0"}
+    entity2 = {"_id": "1244", "model": 1, "release": "1.0"}
 
-    assert len(index_data) == 2
+    cache.set("test", entity1["_id"], entity1)
+    cache.set("test", entity2["_id"], entity2)
 
-    assert index_keys == {"_id", "model"}
-    assert index_data == [{"_id": "1234", "model": "1"}, {"_id": "12345", "model": "1"}]
+    assert cache.get("test", entity1["_id"]) == entity1
+    assert cache.get("test", entity2["_id"]) == entity2
