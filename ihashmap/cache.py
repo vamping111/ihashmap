@@ -25,7 +25,13 @@ class CacheProtocol(Protocol):
     def set(self, name: str, key: str, value: Union[Mapping, List[str], str]) -> None:
         ...
 
-    def update(self, name: str, key: str, value: Union[Mapping, List[str]]) -> None:
+    def update(
+        self,
+        name: str,
+        key: str,
+        value: Union[Mapping, List[str]],
+        fields: Optional[List[str]] = None,
+    ) -> None:
         ...
 
     def delete(self, name: str, key: str) -> None:
@@ -237,7 +243,13 @@ class Cache:
 
     @PIPELINE.update
     @locked
-    def update(self, name: str, key: str, value: Mapping[str, Any]) -> None:
+    def update(
+        self,
+        name: str,
+        key: str,
+        value: Mapping[str, Any],
+        fields: Optional[List[str]] = None,
+    ) -> None:
         """Wrapper for pipeline execution.
 
         :param str name: cache name.
@@ -253,7 +265,7 @@ class Cache:
                 f"Primary key mismatch: {value[self.PRIMARY_KEY]} != {key}"
             )
 
-        return self.protocol.update(name, key, value)
+        return self.protocol.update(name, key, value, fields=fields)
 
     @PIPELINE.delete
     @locked
