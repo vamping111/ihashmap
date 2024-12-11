@@ -284,7 +284,7 @@ class Index:
                     index_data = filter(filter_func, index_data)
 
                 matches.extend(
-                    {pk_field: pk_value, **index.cut_data(i)}
+                    {pk_field: pk_value, **subquery}
                     for i in index_data
                     for pk_value in index.get(cache_name, index.get_index_key(i), default=[])
                 )
@@ -292,7 +292,7 @@ class Index:
             else:
                 search_key = index.get_index_key(subquery)
                 matches.extend(
-                    {pk_field: pk_value, **index.cut_data(subquery)}
+                    {pk_field: pk_value, **subquery}
                     for pk_value in index.get(cache_name, search_key, default=[])
                 )
 
